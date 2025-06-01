@@ -1,6 +1,6 @@
-// Plik: EazyKoszt 0.6.1A-script-core.js
+// Plik: EazyKoszt 0.6.1E-script-core.js
 // Opis: Rdzeń aplikacji EazyKoszt.
-// Wersja 0.6.1A: Poprawka TypeError w showNotification.
+// Wersja 0.6.1E: Poprawka TypeError w showNotification i upewnienie się o spójności.
 
 // ==========================================================================
 // SEKCJA 1: STAŁE GLOBALNE I KONFIGURACJA
@@ -10,9 +10,9 @@ const STORAGE_KEYS = {
     ESTIMATE_STATE: 'eazykoszt_estimateState_v0_1_0',
     LAST_BRANCH_FILTER: 'eazykoszt_lastBranchFilter_v0_3_0',
     TEMPLATES: 'eazykoszt_templates_v0_1_0',
-    APP_VERSION_LS: 'eazykoszt_appVersion_localStorage_v0_6_1A'
+    APP_VERSION_LS: 'eazykoszt_appVersion_localStorage_v0_6_1E'
 };
-const APP_VERSION = "EazyKoszt 0.6.1A";
+const APP_VERSION = "EazyKoszt 0.6.1E";
 const MAX_HISTORY_SIZE = 20;
 const MAX_ESTIMATE_VERSIONS = 30;
 const AUTO_SAVE_PREFIX = "Autozapis - ";
@@ -1249,7 +1249,7 @@ const handleContextMenuAction = async (event) => {
                 const rowIndexToDelete = currentEstimateModel.rows.findIndex(r => r.rowId === targetRowId);
                 if (rowIndexToDelete === -1) {
                     console.error("handleContextMenuAction: Nie znaleziono wiersza w modelu do usunięcia.");
-                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", "error");
+                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", 'error');
                     return;
                 }
 
@@ -1494,7 +1494,7 @@ async function initApp() {
         saveToLocalStorage(STORAGE_KEYS.APP_VERSION_LS, APP_VERSION);
     } catch (error) {
         console.error("KRYTYCZNY BŁĄD INICJALIZACJI APLIKACJI:", error);
-        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działać.`;
+        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działa.`;
         if (error.message) { if (error.message.toLowerCase().includes("json")) errorMessageToUser += "\n\nMożliwy problem z formatem plików JSON. Sprawdź konsolę (F12)."; else if (error.message.toLowerCase().includes("dbservice") || error.message.toLowerCase().includes("catalogimporter") || error.message.toLowerCase().includes("indexeddb")) errorMessageToUser += "\n\nMożliwy problem z inicjalizacją bazy danych lub katalogów. Sprawdź konsolę (F12) i kolejność skryptów."; else if (error.message.toLowerCase().includes("dom") || error.message.toLowerCase().includes("getelementbyid") || error.message.toLowerCase().includes("not found in dom")) errorMessageToUser += "\n\nMożliwy problem ze znalezieniem elementu HTML. Sprawdź index.html i konsolę (F12)."; else if (error.message.toLowerCase().includes("is not defined")) errorMessageToUser += `\n\nProblem z dostępnością funkcji lub zmiennej (${error.message.split(' ')[0]}). Sprawdź konsolę (F12) i kolejność skryptów.`; } errorMessageToUser += "\n\nSprawdź konsolę (F12) po szczegóły.";
         if (typeof showNotification === 'function' && notificationsContainer) { showNotification(errorMessageToUser.replace(/\n/g, "<br>"), 'error', 0); } else { alert(errorMessageToUser.replace(/\n\n/g, '\n')); }
         if (document.body) { document.body.innerHTML = `<div style="padding: 20px; text-align: left; font-family: Arial, sans-serif; background-color: #ffebee; border: 2px solid #c62828; margin: 20px auto; max-width: 800px; border-radius: 8px;"><h1 style="color: #c62828;">Błąd Krytyczny Aplikacji EazyKoszt</h1><p>${errorMessageToUser.replace(/\n/g, "<br>")}</p></div>`;}
