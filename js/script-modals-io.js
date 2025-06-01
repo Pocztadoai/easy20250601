@@ -1,13 +1,13 @@
-// Plik: EazyKoszt 0.4.2-script-modals-io.js
+// Plik: EazyKoszt 0.6.1C-script-modals-io.js
 // Opis: Logika obsługi okien modalnych, operacji importu/eksportu danych,
 //       zarządzania szablonami, wersjami oraz interfejsem użytkownika katalogów.
-// Wersja 0.4.2: Modyfikacje związane z przeniesieniem logiki wersji do script-core.js.
+// Wersja 0.6.1C: Poprawka błędu składni w `_updateEstimateRowFromModal`.
 
 // ==========================================================================
 // SEKCJA 1: INICJALIZACJA MODUŁU I GŁÓWNYCH LISTENERÓW
 // ==========================================================================
 async function initModalsAndIO() {
-    console.log("Inicjalizacja modali i I/O (EazyKoszt 0.4.2-script-modals-io.js)...");
+    console.log("Inicjalizacja modali i I/O (EazyKoszt 0.6.1C-script-modals-io.js)...");
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeCustomTaskModal);
     else if (customTaskModal) console.warn("Przycisk closeModalBtn (w customTaskModal) nie znaleziony.");
@@ -1048,7 +1048,7 @@ const handleContextMenuAction = async (event) => {
                 const rowIndexToDelete = currentEstimateModel.rows.findIndex(r => r.rowId === targetRowId);
                 if (rowIndexToDelete === -1) {
                     console.error("handleContextMenuAction: Nie znaleziono wiersza w modelu do usunięcia.");
-                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", "error");
+                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", 'error');
                     return;
                 }
 
@@ -1208,7 +1208,7 @@ async function initApp() {
         }
 
         appState.subscribe('estimateTitle', (newTitle) => { document.title = `${newTitle} - ${APP_VERSION}`; if (modalEstimateTitleInput && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalEstimateTitleInput.value = newTitle; });
-        appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndtotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+        appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
         appState.subscribe('useSameRateForAllSpecialists', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; await updateDynamicSpecialistRatesVisibility(); if (newValue) { const rates = appState.getState('workerRatesSettings'); const ogolnobudowlanyRate = rates.ogolnobudowlany?.rate || 0; const newRatesSettings = JSON.parse(JSON.stringify(rates)); Object.keys(newRatesSettings).forEach(cat => { if (cat !== 'ogolnobudowlany') newRatesSettings[cat].rate = ogolnobudowlanyRate; }); appState.setState('workerRatesSettings', newRatesSettings); } else { appState.notify('workerRatesSettingsChangedByToggle');} });
         appState.subscribe('workerRatesSettings', async (newRates, oldRates) => { if (isRestoringState) return; if (JSON.stringify(newRates) === JSON.stringify(oldRates) && !appState.getState('useSameRateForAllSpecialists')) return; await updateDynamicSpecialistRatesVisibility(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
         appState.subscribe('workerRatesSettingsChangedByToggle', async () => { if (isRestoringState) return; await updateDynamicSpecialistRatesVisibility(); });
@@ -1283,7 +1283,7 @@ async function initApp() {
         initUserActivityListeners(); // Rozpocznij śledzenie aktywności
         startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
 
-        if (document.querySelector('.tab.active[data-tab="ustawienia"]')) {
+        if (document.querySelector('.tab.active[data-tab="ustawienia']')) {
             if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
         }
 
@@ -1300,4 +1300,4 @@ async function initApp() {
     }
 } // <-- TUTAJ KOŃCZY SIĘ FUNKCJA initApp
 
-console.log("Plik EazyKoszt 0.4.2-script-core.js załadowany.");
+console.log("Plik EazyKoszt 0.6.1A-script-core.js załadowany.");
