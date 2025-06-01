@@ -271,7 +271,7 @@ const AnalysisModule = {
         const sortedDepartmentNames = Object.keys(aggregatedData).sort((a, b) => {
             const deptA = aggregatedData[a];
             const deptB = aggregatedData[b];
-            if ((deptA.name === currentDefaultNonHierarchicalDeptName || deptA.name === currentDefaultUnassignedDeptName) &&
+            if ((deptA.name === currentDefaultNonHIerarchicalDeptName || deptA.name === currentDefaultUnassignedDeptName) &&
                 !(deptB.name === currentDefaultNonHierarchicalDeptName || deptB.name === currentDefaultUnassignedDeptName)) return 1;
             if (!(deptA.name === currentDefaultNonHierarchicalDeptName || deptA.name === currentDefaultUnassignedDeptName) &&
                 (deptB.name === currentDefaultNonHierarchicalDeptName || deptB.name === currentDefaultUnassignedDeptName)) return -1;
@@ -677,40 +677,3 @@ const AnalysisModule = {
 };
 
 console.log("Moduł Analizy EazyKoszt 0.5.0 zdefiniowany.");
-
-/*
-Notatki dotyczące zmian w `js/analysis.js`:
-
-1.  **`dataAccess.getCostTableRows()`**:
-    *   Nowa funkcja w `dataAccess` (zastępuje `getCostTableBody`). Zwraca `currentEstimateModel.rows`, co jest teraz jedynym źródłem prawdy dla danych kosztorysu.
-
-2.  **`dataAccess.isHierarchical()`**:
-    *   Zmieniono, aby odczytywało tryb hierarchiczny bezpośrednio z `currentEstimateModel.isHierarchical`.
-
-3.  **`dataAccess.getDepartmentColors()`**:
-    *   Zmieniono, aby odczytywało mapę kolorów działów z `currentEstimateModel.departmentColors`.
-
-4.  **`_aggregateDepartmentCostsAndLabor()`**:
-    *   **Główna zmiana**: Iteruje po `this.dataAccess.getCostTableRows()` (czyli po `currentEstimateModel.rows`) zamiast odczytywać z DOM.
-    *   Wszystkie dane wierszy (typ, ID, tekst, ilość, lokalne normy, ID katalogowe) są pobierane z obiektów w modelu (`rowObject`).
-    *   Logika odczytu norm z katalogu (gdy brak lokalnych nadpisań) pozostała bez zmian.
-
-5.  **`renderDetailedMaterialCostsByCat()`**:
-    *   Iteruje po `this.dataAccess.getCostTableRows()`.
-    *   Pobiera dane materiałowe z `rowObject` w modelu.
-    *   LP działu w nagłówku tabeli jest nadal tymczasowo pobierane z DOM (`costTableBody.querySelector().cells[1]`), co jest punktem do dalszej optymalizacji, aby LP było przechowywane w modelu.
-    *   Kolory dla działów są teraz odczytywane z `departmentColorsMap` (czyli z `currentEstimateModel.departmentColors`).
-
-6.  **`renderDetailedMaterialCostsByDept()`**:
-    *   Analogiczne zmiany jak w `renderDetailedMaterialCostsByCat()`, aby opierać się na `currentEstimateModel.rows`.
-
-7.  **`renderMaterialProfitAnalysis()`**:
-    *   Analogiczne zmiany jak w pozostałych funkcjach analitycznych, iteruje po `this.dataAccess.getCostTableRows().filter(r => r.rowType === 'task')`.
-
-8.  **`generateGanttChart()`**:
-    *   Iteruje po `this.dataAccess.getCostTableRows()`.
-    *   Pobiera dane zadań (ilość, normy, opis) z `rowObject` w modelu.
-    *   LP (Liczba Porządkowa) dla wyświetlania w nazwie zadania w wykresie Gantta jest **nadal tymczasowo pobierana z DOM** (`costTableBody.querySelector().cells[1]`). Jest to pozostałość po oryginalnej strukturze, która wymagałaby dalszej refaktoryzacji `renumberRows` (aby zapisywała LP do modelu) w celu pełnej niezależności od DOM.
-    *   LP w `taskDisplayName` jest pobierane z `lpForGantt`.
-
-*/

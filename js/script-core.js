@@ -1,6 +1,6 @@
-// Plik: EazyKoszt 0.5.0-script-core.js
+// Plik: EazyKoszt 0.4.2-script-core.js
 // Opis: Rdzeń aplikacji EazyKoszt.
-// Wersja 0.5.0: Inteligentny autozapis reagujący na aktywność użytkownika.
+// Wersja 0.4.2: Inteligentny autozapis reagujący na aktywność użytkownika.
 
 // ==========================================================================
 // SEKCJA 1: STAŁE GLOBALNE I KONFIGURACJA
@@ -62,7 +62,7 @@ let costTableBody, grandTotalElement, addRowBtn, addDepartmentBtn, addSubDepartm
     previewEstimateDetailBtn, toggleStyleConfiguratorBtn, konfiguratorStyluContent,
     saveEstimateVersionBtn,
     editEstimateDetailsBtn, estimateDetailsModal, saveEstimateDetailsModalBtn, cancelEstimateDetailsModalBtn,
-    modalEstimateTitleInput, modalInvestmentLocationInput, modalInvestorInfoInput, modalContractorInfoInput, modalVatRateSelect, // <-- To jest prawidłowe
+    modalEstimateTitleInput, modalInvestmentLocationInput, modalInvestorInfoInput, modalContractorInfoInput, modalVatRateSelect, // Poprawiono: usunięto duplikację
     estimateVersionsSelect, loadSelectedVersionBtn, deleteSelectedVersionBtn,
     customContextMenu,
     saveDepartmentTemplateBtn, saveEstimateTemplateBtn, openTemplatesModalBtn,
@@ -97,17 +97,18 @@ let insertIndicator = null;
 let dbEstimateVersions;
 let currentConfirmCallback = null;
 let currentCancelCallback = null;
-<span style="color: deeppink;">// let departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel</span>
+// let departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel
 let autoSaveTimerId = null;
 let userIdleTimerId = null; // Timer do śledzenia bezczynności użytkownika
 let isUserIdle = false; // Flaga wskazująca, czy użytkownik jest obecnie bezczynny
 
-<span style="color: deeppink;">// NOWA ZMIENNA: Centralny model danych dla kosztorysu</span>
-<span style="color: deeppink;">let currentEstimateModel = {</span>
-<span style="color: deeppink;">    rows: [], // Tablica obiektów reprezentujących wiersze (zadania, działy, poddziały)</span>
-<span style="color: deeppink;">    departmentColors: {}, // Mapa kolorów dla działów/poddziałów (przeniesione z globalnej zmiennej)</span>
-<span style="color: deeppink;">    isHierarchical: false // Tryb hierarchiczny (przeniesione z appState.getState)</span>
-<span style="color: deeppink;">};</span>
+// NOWA ZMIENNA: Centralny model danych dla kosztorysu
+let currentEstimateModel = {
+    rows: [], // Tablica obiektów reprezentujących wiersze (zadania, działy, poddziały)
+    departmentColors: {}, // Mapa kolorów dla działów/poddziałów (przeniesione z globalnej zmiennej)
+    isHierarchical: false // Tryb hierarchiczny (przeniesione z appState.getState)
+};
+
 // ==========================================================================
 // SEKCJA 3: FUNKCJE POMOCNICZE (OGÓLNE)
 // ==========================================================================
@@ -146,6 +147,7 @@ function evaluateMathExpression(expression) {
 // ==========================================================================
 // SEKCJA 3.1: FUNKCJE POMOCNICZE (KOLORY)
 // ==========================================================================
+// ... (bez zmian) ...
 function hexToRgb(hex) {
     if (!hex || typeof hex !== 'string') return null;
     const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -186,16 +188,17 @@ function getContrastTextColor(hexBackgroundColor) {
     return luminance > 0.45 ? '#000000' : '#FFFFFF';
 }
 
-<span style="color: deeppink;">// USUNIĘTE FUNKCJE ZARZĄDZANIA KOLORAMI WIERSZY (przeniesione/zintegrowane z renderCostTable)</span>
-<span style="color: deeppink;">// function applyRowColor() { /* ... */ }</span>
-<span style="color: deeppink;">// function applyInheritedColors() { /* ... */ }</span>
-<span style="color: deeppink;">// function applyTaskColorsUnderParent() { /* ... */ }</span>
-<span style="color: deeppink;">// function reapplyAllRowColors() { /* ... */ }</span>
-<span style="color: deeppink;">// function getParentDepartmentRow() { /* ... */ }</span>
-<span style="color: deeppink;">// function getParentSubDepartmentRow() { /* ... */ }</span>
+// USUNIĘTE FUNKCJE ZARZĄDZANIA KOLORAMI WIERSZY (przeniesione/zintegrowane z renderCostTable)
+// function applyRowColor() { /* ... */ }
+// function applyInheritedColors() { /* ... */ }
+// function applyTaskColorsUnderParent() { /* ... */ }
+// function reapplyAllRowColors() { /* ... */ }
+// function getParentDepartmentRow() { /* ... */ }
+// function getParentSubDepartmentRow() { /* ... */ }
+
 
 // ==========================================================================
-// SEKCJA 3.2: SYSTEM POWIADOMIEŃ
+// SEKCJA 3.2: SYSTEM POWIADOMIENI
 // ==========================================================================
 // ... (bez zmian) ...
 function showNotification(message, type = 'info', duration = 5000) {
@@ -210,7 +213,7 @@ function showNotification(message, type = 'info', duration = 5000) {
     iconSpan.classList.add('notification-icon');
     iconSpan.textContent = NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info;
     notification.appendChild(iconSpan);
-    const messageSpan = document.createElement('span');
+    const messageSpan = document.createElement('span'); // Poprawka: createElement
     messageSpan.classList.add('notification-message');
     messageSpan.innerHTML = message;
     notification.appendChild(messageSpan);
@@ -261,7 +264,7 @@ const appState = {
         currentVatDisplayValue: "23",
         workerRatesSettings: JSON.parse(JSON.stringify(DEFAULT_WORKER_RATES_SETTINGS)),
         useSameRateForAllSpecialists: true,
-        <span style="color: deeppink;">isHierarchicalMode: false, // Zmieniono: Główna kontrola trybu hierarchicznego jest teraz w currentEstimateModel</span>
+        isHierarchicalMode: false, // Zmieniono: Główna kontrola trybu hierarchicznego jest teraz w currentEstimateModel
         lastBranchFilter: '',
         defaultTaskRowBackgroundColor: null,
         autoSaveEnabled: true,
@@ -302,14 +305,14 @@ const appState = {
             this._state.defaultTaskRowBackgroundColor = savedStyles['--task-row-default-bg'];
         }
 
-        <span style="color: deeppink;">// Zmieniono: isHierarchicalMode w appState powinno być zsynchronizowane z currentEstimateModel</span>
-        <span style="color: deeppink;">// Przy inicjalizacji appState, currentEstimateModel może jeszcze nie być w pełni załadowany/zsynchronizowany,</span>
-        <span style="color: deeppink;">// dlatego ta synchronizacja jest bardziej krytyczna podczas ładowania estimateState</span>
-        <span style="color: deeppink;">// Poniżej: appState.isHierarchicalMode będzie ustawiane przez restoreEstimateDisplayState</span>
-        <span style="color: deeppink;">// lub loadEstimateState na podstawie currentEstimateModel.isHierarchical</span>
-        <span style="color: deeppink;">if (typeof currentEstimateModel !== 'undefined') {</span>
-        <span style="color: deeppink;">     this._state.isHierarchicalMode = currentEstimateModel.isHierarchical;</span>
-        <span style="color: deeppink;">}</span>
+        // Zmieniono: isHierarchicalMode w appState powinno być zsynchronizowane z currentEstimateModel
+        // Przy inicjalizacji appState, currentEstimateModel może jeszcze nie być w pełni załadowany/zsynchronizowany,
+        // dlatego ta synchronizacja jest bardziej krytyczna podczas ładowania estimateState
+        // Poniżej: appState.isHierarchicalMode będzie ustawiane przez restoreEstimateDisplayState
+        // lub loadEstimateState na podstawie currentEstimateModel.isHierarchical
+        if (typeof currentEstimateModel !== 'undefined') {
+             this._state.isHierarchicalMode = currentEstimateModel.isHierarchical;
+        }
 
         console.log("Zarządca stanu zainicjalizowany. Stan początkowy:", JSON.parse(JSON.stringify(this._state)));
     },
@@ -339,6 +342,7 @@ const appState = {
     unsubscribe(key, listener) { if (this._listeners[key]) this._listeners[key] = this._listeners[key].filter(l => l !== listener); },
     notify(key, newValue, oldValue) { if (this._listeners[key]) this._listeners[key].forEach(listener => { try { listener(newValue, oldValue); } catch (e) { console.error(`Błąd w listenerze dla klucza '${key}':`, e); } }); }
 };
+
 // ==========================================================================
 // NOWA FUNKCJA: CENTRALNA AKTUALIZACJA MODELU I RENDEROWANIE UI
 // Opis: Ta funkcja jest punktem wejścia do modyfikacji stanu kosztorysu.
@@ -388,11 +392,11 @@ async function updateModelAndRender(newModelData) {
 // ==========================================================================
 // SEKCJA 3.4: ZARZĄDZANIE KOLORAMI WIERSZY
 // ==========================================================================
-<span style="color: deeppink;">// USUNIĘTO: Funkcje applyRowColor, applyInheritedColors, applyTaskColorsUnderParent, reapplyAllRowColors</span>
-<span style="color: deeppink;">// Ich logika została zintegrowana w renderCostTable.</span>
-<span style="color: deeppink;">// Funkcje getParentDepartmentRow i getParentSubDepartmentRow również usunięto,</span>
-<span style="color: deeppink;">// ponieważ ich głównym zastosowaniem było wspieranie dziedziczenia kolorów w DOM,</span>
-<span style="color: deeppink;">// co teraz jest częścią logiki renderCostTable.</span>
+// USUNIĘTE: Funkcje applyRowColor, applyInheritedColors, applyTaskColorsUnderParent, reapplyAllRowColors
+// Ich logika została zintegrowana w renderCostTable.
+// Funkcje getParentDepartmentRow i getParentSubDepartmentRow również usunięto,
+// ponieważ ich głównym zastosowaniem było wspieranie dziedziczenia kolorów w DOM,
+// co teraz jest częścią logiki renderCostTable.
 
 function openColorPalette(event, targetDomRow) { // Przyjmuje element DOM
     event.stopPropagation();
@@ -490,15 +494,101 @@ const setupTabs = () => { document.querySelectorAll('.tab').forEach(tab => { tab
 // ==========================================================================
 // SEKCJA 7: FUNKCJE ZARZĄDZANIA KOSZTORYSEM (LICZBA SŁOWNIE, HISTORIA, STAWKI)
 // ==========================================================================
-const liczbaSlownie = (liczba) => { if(typeof liczba!=='number'||isNaN(liczba))return"nieprawidłowa liczba"; const _j=["","jeden","dwa","trzy","cztery","pięć","sześć","siedem","osiem","dziewięć"],_n=["dziesięć","jedenaście","dwanaście","trzynaście","czternaście","piętnaście","szesnaście","siedemnaście","osiemnaście","dziewiętnaście"],_d=["","dziesięć","dwadzieścia","trzydzieści","czterdzieści","pięćdziesiąt","sześćdziesiąt","siedemdziesiąt","osiemdziesiąt","dziewięćdziesiąt"],_s=["","sto","dwieście","trzysta","czterysta","pięćset","sześćset","siedemset","osiemset","dziewięćset"],_g=[["","",""],["tysiąc","tysiące","tysięcy"],["milion","miliony","milionów"],["miliard","miliardy","miliardów"],["bilion","biliony","bilionów"],["biliard","biliardy","biliardów"],["trylion","tryliony","trylionów"]]; liczba=Math.round(liczba*100)/100; const[zlI,grI]=String(liczba.toFixed(2)).split('.').map(Number); if(zlI===0&&grI===0)return"zero złotych zero groszy"; let r=[]; if(zlI!==0){let gg=0,l=zlI; while(l>0){let s=Math.floor((l%1000)/100),d=Math.floor((l%100)/10),j=Math.floor(l%10),k=l%100; if(d===1&&j>0)d=0;else k=0; let o=2; if(j===1&&s===0&&d===0&&k===0)o=0;else if(j>=2&&j<=4)o=1; let c=[]; if(s>0)c.push(_s[s]); if(k>0)c.push(_n[k%10]); if(d>0)c.push(_d[d]); if(j>0&&k===0)c.push(_j[j]); if(c.length>0){if(gg>0){if(gg===1&&o===0&&c.length===1&&c[0]==='jeden')c=[]; c.push(_g[gg][o])} r.unshift(c.join(" "))} l=Math.floor(l/1000);gg++ }} let zlS=r.join(" "); let zlF; const ldZ=zlI%10,ld2Z=zlI%100; if(zlI===1)zlF="złoty";else if(ldZ>=2&&ldZ<=4&&!(ld2Z>=12&&ld2Z<=14))zlF="złote";else zlF="złotych"; if(zlS==="")zlS="zero"; let grS=""; if(grI>0){let gj=grI%10,gk=grI%100; if(grI>=10&&grI<=19)grS=_n[grI-10]; else{let gd=Math.floor(grI/10);let cg=[];if(gd>0)cg.push(_d[gd]);if(gj>0)cg.push(_j[gj]);grS=cg.join(" ")}else grS="zero"; let grF; const ldG=grI%10,ld2G=grI%100; if(grI===1)grF="grosz";else if(ldG>=2&&ldG<=4&&!(ld2G>=12&&ld2G<=14))grF="grosze";else grF="groszy"; return`${zlS} ${zlF} ${grS} ${grF}`};
+const liczbaSlownie = (liczba) => {
+    if(typeof liczba !== 'number' || isNaN(liczba)) return "nieprawidłowa liczba";
+
+    const _j = ["", "jeden", "dwa", "trzy", "cztery", "pięć", "sześć", "siedem", "osiem", "dziewięć"];
+    const _n = ["dziesięć", "jedenaście", "dwanaście", "trzynaście", "czternaście", "piętnaście", "szesnaście", "siedemnaście", "osiemnaście", "dziewiętnaście"];
+    const _d = ["", "dziesięć", "dwadzieścia", "trzydzieści", "czterdzieści", "pięćdziesiąt", "sześćdziesiąt", "siedemdziesiąt", "osiemdziesiąt", "dziewięćdziesiąt"];
+    const _s = ["", "sto", "dwieście", "trzysta", "czterysta", "pięćset", "sześćset", "siedemset", "osiemset", "dziewięćset"];
+    const _g = [
+        ["", "", ""],
+        ["tysiąc", "tysiące", "tysięcy"],
+        ["milion", "miliony", "milionów"],
+        ["miliard", "miliardy", "miliardów"],
+        ["bilion", "biliony", "bilionów"],
+        ["biliard", "biliardy", "biliardów"],
+        ["trylion", "tryliony", "trylionów"]
+    ];
+
+    liczba = Math.round(liczba * 100) / 100;
+    const [zlI, grI] = String(liczba.toFixed(2)).split('.').map(Number);
+
+    if (zlI === 0 && grI === 0) return "zero złotych zero groszy";
+
+    let r = [];
+    if (zlI !== 0) {
+        let gg = 0;
+        let l = zlI;
+        while (l > 0) {
+            let s = Math.floor((l % 1000) / 100);
+            let d = Math.floor((l % 100) / 10);
+            let j = Math.floor(l % 10);
+            let k = l % 100;
+
+            if (d === 1 && j > 0) d = 0; // Obsługa 10-19
+            else k = 0; // Jeśli nie 10-19, to k nie jest używane dla dziesiątek
+
+            let o = 2; // Domyślnie końcówka "ów"
+            if (j === 1 && s === 0 && d === 0 && k === 0) o = 0; // "tysiąc", "milion"
+            else if (j >= 2 && j <= 4 && !(k >= 12 && k <= 14)) o = 1; // "tysiące", "miliony"
+
+            let c = [];
+            if (s > 0) c.push(_s[s]);
+            if (k > 0) c.push(_n[k % 10]);
+            if (d > 0) c.push(_d[d]);
+            if (j > 0 && k === 0) c.push(_j[j]);
+
+            if (c.length > 0) {
+                if (gg > 0) {
+                    if (gg === 1 && o === 0 && c.length === 1 && c[0] === 'jeden') c = []; // "jeden tysiąc" -> "tysiąc"
+                    c.push(_g[gg][o]);
+                }
+                r.unshift(c.join(" "));
+            }
+            l = Math.floor(l / 1000);
+            gg++;
+        }
+    }
+
+    let zlS = r.join(" ");
+    let zlF;
+    const ldZ = zlI % 10;
+    const ld2Z = zlI % 100;
+    if (zlI === 1) zlF = "złoty";
+    else if (ldZ >= 2 && ldZ <= 4 && !(ld2Z >= 12 && ld2Z <= 14)) zlF = "złote";
+    else zlF = "złotych";
+    if (zlS === "") zlS = "zero";
+
+    let grS = "";
+    if (grI > 0) {
+        let gj = grI % 10;
+        let gd = Math.floor(grI / 10);
+        let cg = [];
+        if (gd > 0) cg.push(_d[gd]);
+        if (gj > 0) cg.push(_j[gj]);
+        grS = cg.join(" ");
+    } else {
+        grS = "zero";
+    }
+
+    let grF;
+    const ldG = grI % 10;
+    const ld2G = grI % 100;
+    if (grI === 1) grF = "grosz";
+    else if (ldG >= 2 && ldG <= 4 && !(ld2G >= 12 && ld2G <= 14)) grF = "grosze";
+    else grF = "groszy";
+
+    return `${zlS} ${zlF} ${grS} ${grF}`;
+};
 
 // PRZENIESIONE FUNKCJE HISTORII I STANU KOSZTORYSU
 const updateUndoRedoButtons = () => { if (undoBtn) undoBtn.disabled = historyStack.length === 0; if (redoBtn) redoBtn.disabled = redoStack.length === 0; };
 
 const getCurrentEstimateDisplayState = () => {
-    <span style="color: deeppink;">// Zmieniono: Zwracamy głęboką kopię aktualnego modelu kosztorysu.</span>
-    <span style="color: deeppink;">// Model jest teraz jedynym źródłem prawdy dla stanu wyświetlania.</span>
-    <span style="color: deeppink;">return JSON.parse(JSON.stringify(currentEstimateModel));</span>
+    // Zmieniono: Zwracamy głęboką kopię aktualnego modelu kosztorysu.
+    // Model jest teraz jedynym źródłem prawdy dla stanu wyświetlania.
+    return JSON.parse(JSON.stringify(currentEstimateModel));
 };
 
 const restoreEstimateDisplayState = async (state) => {
@@ -508,27 +598,27 @@ const restoreEstimateDisplayState = async (state) => {
     }
     isRestoringState = true;
     try {
-        <span style="color: deeppink;">// Ustawienie globalnego obiektu modelu</span>
-        <span style="color: deeppink;">currentEstimateModel.rows = state.rows ? JSON.parse(JSON.stringify(state.rows)) : [];</span>
-        <span style="color: deeppink;">currentEstimateModel.departmentColors = state.departmentColors ? JSON.parse(JSON.stringify(state.departmentColors)) : {};</span>
-        <span style="color: deeppink;">currentEstimateModel.isHierarchical = state.isHierarchical === undefined ? false : state.isHierarchical;</span>
+        // Ustawienie globalnego obiektu modelu
+        currentEstimateModel.rows = state.rows ? JSON.parse(JSON.stringify(state.rows)) : [];
+        currentEstimateModel.departmentColors = state.departmentColors ? JSON.parse(JSON.stringify(state.departmentColors)) : {};
+        currentEstimateModel.isHierarchical = state.isHierarchical === undefined ? false : state.isHierarchical;
 
-        <span style="color: deeppink;">// Zmieniono: Aktualizacja appState.isHierarchicalMode, aby pozostałe części UI były spójne</span>
-        <span style="color: deeppink;">appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true);</span>
+        // Zmieniono: Aktualizacja appState.isHierarchicalMode, aby pozostałe części UI były spójne
+        appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true);
 
-        <span style="color: deeppink;">// Wywołaj nową funkcję do renderowania całej tabeli na podstawie zaktualizowanego modelu</span>
-        <span style="color: deeppink;">if (typeof renderCostTable === 'function') {</span>
-        <span style="color: deeppink;">    await renderCostTable(currentEstimateModel);</span>
-        <span style="color: deeppink;">} else {</span>
-        <span style="color: deeppink;">    console.warn("renderCostTable nie jest jeszcze zdefiniowany. Częściowe odtworzenie stanu.");</span>
-        <span style="color: deeppink;">    if (costTableBody) costTableBody.innerHTML = '';</span>
-        <span style="color: deeppink;">}</span>
+        // Wywołaj nową funkcję do renderowania całej tabeli na podstawie zaktualizowanego modelu
+        if (typeof renderCostTable === 'function') {
+            await renderCostTable(currentEstimateModel);
+        } else {
+            console.warn("renderCostTable nie jest jeszcze zdefiniowany. Częściowe odtworzenie stanu.");
+            if (costTableBody) costTableBody.innerHTML = '';
+        }
 
         // Poniższe wywołania pozostają (operują na DOM, ale ich celem nie jest samo renderowanie wierszy)
         if (typeof renumberRows === 'function') renumberRows();
         if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-        <span style="color: deeppink;">// USUNIĘTO: reapplyAllRowColors() - teraz jest częścią renderCostTable</span>
-        <span style="color: deeppink;">// USUNIĘTO: Pętla iterująca po rows i dodająca wiersze do DOM - zastąpiona przez renderCostTable</span>
+        // USUNIĘTO: reapplyAllRowColors() - teraz jest częścią renderCostTable
+        // USUNIĘTO: Pętla iterująca po rows i dodająca wiersze do DOM - zastąpiona przez renderCostTable
 
     } catch (error) {
         console.error("Błąd przywracania stanu wyświetlania kosztorysu:", error);
@@ -572,11 +662,11 @@ async function updateDynamicSpecialistRatesVisibility() {
         return;
     }
     const usedCategories = new Set();
-    <span style="color: deeppink;">// Zmieniono: Iterujemy po currentEstimateModel.rows</span>
-    <span style="color: deeppink;">const allTaskRowsInModel = currentEstimateModel.rows.filter(r => r.rowType === 'task');</span>
+    // Zmieniono: Iterujemy po currentEstimateModel.rows
+    const allTaskRowsInModel = currentEstimateModel.rows.filter(r => r.rowType === 'task');
     const taskIdsToFetchDetails = new Set();
     const rowDetails = [];
-    <span style="color: deeppink;">for (const rowObject of allTaskRowsInModel) { // Iterujemy po modelu</span>
+    for (const rowObject of allTaskRowsInModel) { // Iterujemy po modelu
         const localCat = rowObject.localWorkerCategory;
         const catId = rowObject.taskCatalogId;
         rowDetails.push({ localCat, catId });
@@ -639,6 +729,7 @@ async function handleUseSameRateChange() {
     const newUseSameRate = useSameRateCheckbox.checked;
     appState.setState('useSameRateForAllSpecialists', newUseSameRate);
 }
+
 // ==========================================================================
 // SEKCJA 7.1: ZARZĄDZANIE WERSJAMI KOSZTORYSU (IndexedDB)
 // ==========================================================================
@@ -699,7 +790,7 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
         return null;
     }
 
-    const currentFullEstimateState = getCurrentEstimateDisplayState(); <span style="color: deeppink;">// Pobiera z currentEstimateModel</span>
+    const currentFullEstimateState = getCurrentEstimateDisplayState(); // Pobiera z currentEstimateModel
     const estimateDataForVersion = {
         rows: currentFullEstimateState.rows,
         departmentColors: currentFullEstimateState.departmentColors,
@@ -749,7 +840,7 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
 
                         if (numToDelete > 0) {
                              const manualVersions = allVersions.filter(v => !v.isAuto);
-                             for (const manualVersion of manualVersions) {
+                             for (const manualVersion of allVersions) { // Poprawka: Iterujemy po `allVersions`, a nie `manualVersions`
                                 if (numToDelete <= 0) break;
                                 if (!idsToDelete.includes(manualVersion.id)) {
                                    idsToDelete.push(manualVersion.id);
@@ -861,10 +952,10 @@ async function loadEstimateFromVersionRecord(versionRecord) {
 
         const estimateData = versionRecord.estimateData;
 
-        <span style="color: deeppink;">// Zmieniono: Ustawiamy currentEstimateModel na podstawie wczytanych danych</span>
-        <span style="color: deeppink;">currentEstimateModel.rows = estimateData.rows ? JSON.parse(JSON.stringify(estimateData.rows)) : [];</span>
-        <span style="color: deeppink;">currentEstimateModel.departmentColors = estimateData.departmentColors ? JSON.parse(JSON.stringify(estimateData.departmentColors)) : {};</span>
-        <span style="color: deeppink;">currentEstimateModel.isHierarchical = estimateData.isHierarchicalMode === undefined ? false : estimateData.isHierarchicalMode;</span>
+        // Zmieniono: Ustawiamy currentEstimateModel na podstawie wczytanych danych
+        currentEstimateModel.rows = estimateData.rows ? JSON.parse(JSON.stringify(estimateData.rows)) : [];
+        currentEstimateModel.departmentColors = estimateData.departmentColors ? JSON.parse(JSON.stringify(estimateData.departmentColors)) : {};
+        currentEstimateModel.isHierarchical = estimateData.isHierarchicalMode === undefined ? false : estimateData.isHierarchicalMode;
 
 
         appState.setState('estimateTitle', estimateData.estimateTitle || '', true);
@@ -896,10 +987,10 @@ async function loadEstimateFromVersionRecord(versionRecord) {
             StyleConfiguratorModule.applyUserStylesFromObject(estimateData.userStyles);
         }
 
-        <span style="color: deeppink;">// Zmieniono: Wywołujemy renderCostTable dla zaktualizowanego currentEstimateModel</span>
-        <span style="color: deeppink;">if (typeof renderCostTable === 'function') {</span>
-        <span style="color: deeppink;">     await renderCostTable(currentEstimateModel);</span>
-        <span style="color: deeppink;">}</span>
+        // Zmieniono: Wywołujemy renderCostTable dla zaktualizowanego currentEstimateModel
+        if (typeof renderCostTable === 'function') {
+             await renderCostTable(currentEstimateModel);
+        }
 
         if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility();
         isRestoringState = false;
@@ -910,6 +1001,7 @@ async function loadEstimateFromVersionRecord(versionRecord) {
         // updateModelAndRender zostanie automatycznie wywołane, co spowoduje zapis historii i localStorage.
     });
 }
+
 // ==========================================================================
 // SEKCJA 7.2: LOGIKA AUTOZAPISU
 // ==========================================================================
@@ -1021,46 +1113,46 @@ const populateCommonUnitsDatalist = () => { if(!commonUnitsDatalist) return; com
 // renumberRows przeniesiono do script-estimate.js
 const saveEstimateState = async () => {
     if (isRestoringState) return;
-    <span style="color: deeppink;">// Zmieniono: Zapisujemy currentEstimateModel bezpośrednio</span>
-    <span style="color: deeppink;">saveToLocalStorage(STORAGE_KEYS.ESTIMATE_STATE, currentEstimateModel);</span>
+    // Zmieniono: Zapisujemy currentEstimateModel bezpośrednio
+    saveToLocalStorage(STORAGE_KEYS.ESTIMATE_STATE, currentEstimateModel);
 };
 const loadEstimateState = async () => {
     const savedEstimateState = loadFromLocalStorage(STORAGE_KEYS.ESTIMATE_STATE);
     if (savedEstimateState && savedEstimateState.rows) {
-        <span style="color: deeppink;">// Zmieniono: Wczytujemy do currentEstimateModel</span>
-        <span style="color: deeppink;">currentEstimateModel.rows = savedEstimateState.rows;</span>
-        <span style="color: deeppink;">currentEstimateModel.departmentColors = savedEstimateState.departmentColors || {};</span>
-        <span style="color: deeppink;">currentEstimateModel.isHierarchical = savedEstimateState.isHierarchical === undefined ? false : savedEstimateState.isHierarchical;</span>
+        // Zmieniono: Wczytujemy do currentEstimateModel
+        currentEstimateModel.rows = savedEstimateState.rows;
+        currentEstimateModel.departmentColors = savedEstimateState.departmentColors || {};
+        currentEstimateModel.isHierarchical = savedEstimateState.isHierarchical === undefined ? false : savedEstimateState.isHierarchical;
 
-        <span style="color: deeppink;">// Zmieniono: Aktualizujemy appState, aby jego wartości były spójne z modelem i UI</span>
-        <span style="color: deeppink;">appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true);</span>
+        // Zmieniono: Aktualizujemy appState, aby jego wartości były spójne z modelem i UI
+        appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true);
 
-        <span style="color: deeppink;">// Zmieniono: Wywołujemy renderCostTable, aby zaktualizować DOM na podstawie modelu</span>
-        <span style="color: deeppink;">if (typeof renderCostTable === 'function') {</span>
-        <span style="color: deeppink;">    await renderCostTable(currentEstimateModel);</span>
-        <span style="color: deeppink;">} else {</span>
-        <span style="color: deeppink;">    if (costTableBody) costTableBody.innerHTML = ''; // Wyczyść DOM jeśli renderCostTable nie jest dostępne</span>
-        <span style="color: deeppink;">}</span>
+        // Zmieniono: Wywołujemy renderCostTable, aby zaktualizować DOM na podstawie modelu
+        if (typeof renderCostTable === 'function') {
+            await renderCostTable(currentEstimateModel);
+        } else {
+            if (costTableBody) costTableBody.innerHTML = ''; // Wyczyść DOM jeśli renderCostTable nie jest dostępne
+        }
 
         console.log("Wczytano stan kosztorysu (ESTIMATE_STATE), w tym departmentColors i isHierarchical.");
     } else {
-        <span style="color: deeppink;">// Zmieniono: Jeśli brak zapisanego stanu, zainicjuj pusty model i domyślne ustawienia</span>
-        <span style="color: deeppink;">currentEstimateModel.rows = [];</span>
-        <span style="color: deeppink;">currentEstimateModel.departmentColors = {};</span>
-        <span style="color: deeppink;">currentEstimateModel.isHierarchical = false; // Domyślnie niehierarchiczny</span>
+        // Zmieniono: Jeśli brak zapisanego stanu, zainicjuj pusty model i domyślne ustawienia
+        currentEstimateModel.rows = [];
+        currentEstimateModel.departmentColors = {};
+        currentEstimateModel.isHierarchical = false; // Domyślnie niehierarchiczny
 
-        <span style="color: deeppink;">appState.setState('isHierarchicalMode', false, true); // Zaktualizuj appState</span>
+        appState.setState('isHierarchicalMode', false, true); // Zaktualizuj appState
 
-        <span style="color: deeppink;">if (currentEstimateModel.isHierarchical && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') {</span>
-        <span style="color: deeppink;">    ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja zaktualizuje model</span>
-        <span style="color: deeppink;">}</span>
+        if (currentEstimateModel.isHierarchical && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') {
+            ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja zaktualizuje model
+        }
 
-        <span style="color: deeppink;">// Zmieniono: Wywołaj renderCostTable dla początkowego, pustego/domyślnego stanu</span>
-        <span style="color: deeppink;">if (typeof renderCostTable === 'function') {</span>
-        <span style="color: deeppink;">    await renderCostTable(currentEstimateModel);</span>
-        <span style="color: deeppink;">} else {</span>
-        <span style="color: deeppink;">    if (costTableBody) costTableBody.innerHTML = '';</span>
-        <span style="color: deeppink;">}</span>
+        // Zmieniono: Wywołaj renderCostTable dla początkowego, pustego/domyślnego stanu
+        if (typeof renderCostTable === 'function') {
+            await renderCostTable(currentEstimateModel);
+        } else {
+            if (costTableBody) costTableBody.innerHTML = '';
+        }
 
         if (typeof recalculateAllRowsAndTotals === 'function') {
             await recalculateAllRowsAndTotals();
@@ -1069,6 +1161,7 @@ const loadEstimateState = async () => {
     }
     saveHistoryState(); // Przeniesione tutaj, aby było zdefiniowane i zawsze zapisywało stan początkowy
 };
+
 
 // ==========================================================================
 // SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
@@ -1132,11 +1225,11 @@ const handleContextMenuAction = async (event) => {
             }
             break;
         case 'edit-notes':
-            <span style="color: deeppink;">// Zmieniono: openNotesModal przyjmuje ID wiersza, a nie DOM element</span>
-            <span style="color: deeppink;">if (targetDomRow && typeof openNotesModal === 'function') openNotesModal(targetDomRow.dataset.rowId);</span>
+            // Zmieniono: openNotesModal przyjmuje ID wiersza, a nie DOM element
+            if (targetDomRow && typeof openNotesModal === 'function') openNotesModal(targetDomRow.dataset.rowId);
             break;
         case 'delete':
-            <span style="color: deeppink;">// Użyj targetDomRow do znalezienia odpowiedniego obiektu w modelu</span>
+            // Użyj targetDomRow do znalezienia odpowiedniego obiektu w modelu
             if (!targetDomRow || !costTableBody || !costTableBody.contains(targetDomRow)) {
                 console.warn("handleContextMenuAction: Brak docelowego wiersza do usunięcia.");
                 return;
@@ -1244,203 +1337,168 @@ const handleContextMenuAction = async (event) => {
         case 'go-to-settings': activateTab('ustawienia'); break;
         case 'print': if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal(); break;
     }
-};// ==========================================================================
+};
+// ==========================================================================
 // SEKCIA 10: GŁÓWNA INICJALIZACJA APLIKACJI (initApp)
 // ==========================================================================
 async function initApp() {
     console.log(`%cInicjalizacja ${APP_VERSION}...`, "color: blue; font-weight: bold;");
-    <span style="color: deeppink;">// departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel</span>
+    // departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel
 
-    costTableBody = document.getElementById('cost-table-body'); if (!costTableBody) throw new Error("Krytyczny błąd: Element 'cost-table-body' nie został znaleziony w DOM.");
-    grandTotalElement = document.getElementById('grand-total'); if (!grandTotalElement) throw new Error("Krytyczny błąd: Element 'grand-total' nie został znaleziony w DOM.");
-    notificationsContainer = document.getElementById('notifications-container'); if (!notificationsContainer) console.warn("Element 'notifications-container' nie znaleziony. Powiadomienia będą używać alert().");
-    addRowBtn = document.getElementById('add-row-btn'); addDepartmentBtn = document.getElementById('add-department-btn'); addSubDepartmentBtn = document.getElementById('add-subdepartment-btn'); clearAllBtn = document.getElementById('clear-all-btn'); saveEstimateVersionBtn = document.getElementById('save-estimate-version-btn'); previewEstimateDetailBtn = document.getElementById('preview-estimate-detail-btn'); materialSummaryBody = document.getElementById('material-summary-body'); materialGrandTotalElement = document.getElementById('material-grand-total'); materialProfitGrandTotalElement = document.getElementById('material-profit-grand-total'); materialSummaryTable = document.getElementById('material-summary-table'); customTaskModal = document.getElementById('custom-task-modal'); if (!customTaskModal) throw new Error("Krytyczny błąd: Modal 'custom-task-modal' nie znaleziony."); closeModalBtn = customTaskModal.querySelector('.close-modal-btn[data-modal-id="custom-task-modal"]'); saveModalBtn = document.getElementById('save-custom-task-btn'); cancelCustomTaskBtn = document.getElementById('cancel-custom-task-btn'); addMaterialNormBtn = document.getElementById('add-material-norm-btn'); customTaskMaterialsList = document.getElementById('custom-task-materials-list'); modalTitle = customTaskModal.querySelector('h2'); originalModalTitle = modalTitle ? modalTitle.textContent : "Zdefiniuj/Edytuj Pozycję Katalogową"; modalDescInput = document.getElementById('custom-task-desc'); modalUnitInput = document.getElementById('custom-task-unit'); modalNormRInput = document.getElementById('custom-task-norm-r'); modalWorkerCategorySelect = document.getElementById('custom-task-worker-category'); modalMaterialsSection = customTaskModal.querySelector('#modal-materials-section'); modalQuantityDiv = document.createElement('div'); modalQuantityDiv.classList.add('form-group'); modalQuantityDiv.innerHTML = `<label for="modal-task-quantity">Obmiar dla tej pozycji:</label><input type="text" id="modal-task-quantity" value="1,000">`; modalQuantityInput = modalQuantityDiv.querySelector('#modal-task-quantity'); materialSelectModal = document.getElementById('material-select-modal'); if (!materialSelectModal) throw new Error("Krytyczny błąd: Modal 'material-select-modal' nie znaleziony."); closeMaterialModalBtn = materialSelectModal.querySelector('.close-modal-btn[data-modal-id="material-select-modal"]'); materialSearchInput = document.getElementById('material-search-input'); materialSelectList = document.getElementById('material-select-list'); materialSelectNoResults = document.getElementById('material-select-no-results'); newMaterialNameInput = document.getElementById('new-material-name-input'); newMaterialUnitInput = document.getElementById('new-material-unit-input'); newMaterialCategoryInput = document.getElementById('new-material-category-input'); addNewMaterialBtn = document.getElementById('add-new-material-btn'); cancelMaterialSelectBtn = document.getElementById('cancel-material-select-btn'); csvFileInput = document.getElementById('csv-file-input'); loadCsvButton = document.getElementById('load-csv-button'); saveEstimateBtn = document.getElementById('save-estimate-btn'); loadEstimateBtn = document.getElementById('load-estimate-btn'); loadEstimateFileInput = document.getElementById('load-estimate-file-input'); commonUnitsDatalist = document.getElementById('commonUnitsData'); undoBtn = document.getElementById('undo-btn'); redoBtn = document.getElementById('redo-btn'); fixedActionButtons = document.getElementById('fixed-action-buttons'); scrollToTopBtn = document.getElementById('scroll-to-top-btn'); useSameRateCheckbox = document.getElementById('use-same-rate-for-all'); specialistRatesContainer = document.getElementById('specialist-rates-container'); openPrintSelectionBtn = document.getElementById('open-print-selection-btn'); printSelectionModal = document.getElementById('print-selection-modal'); if (!printSelectionModal) throw new Error("Krytyczny błąd: Modal 'print-selection-modal' nie znaleziony."); closePrintSelectionModalBtn = printSelectionModal.querySelector('.close-modal-btn[data-modal-id="print-selection-modal"]'); generateSelectedPrintsBtn = document.getElementById('generate-selected-prints-btn'); cancelPrintSelectionBtn = document.getElementById('cancel-print-selection-btn'); printOptionsContainer = document.getElementById('print-options-container'); toggleStyleConfiguratorBtn = document.getElementById('toggle-style-configurator-btn'); konfiguratorStyluContent = document.getElementById('konfigurator-stylu-content'); editEstimateDetailsBtn = document.getElementById('edit-estimate-details-btn'); estimateDetailsModal = document.getElementById('edit-estimate-details-modal'); if (!estimateDetailsModal) throw new Error("Krytyczny błąd: Modal 'edit-estimate-details-modal' nie znaleziony."); saveEstimateDetailsModalBtn = document.getElementById('save-estimate-details-modal-btn'); cancelEstimateDetailsModalBtn = document.getElementById('cancel-estimate-details-modal-btn'); modalEstimateTitleInput = document.getElementById('modal-estimate-title'); modalInvestmentLocationInput = document.getElementById('modal-investment-location'); modalInvestorInfoInput = document.getElementById('modal-investor-info'); modalContractorInfoInput = document.getElementById('modal-contractor-info'); modalVatRateSelect = document.getElementById('modal-vat-rate'); estimateVersionsSelect = document.getElementById('estimate-versions-select'); loadSelectedVersionBtn = document.getElementById('load-selected-version-btn'); deleteSelectedVersionBtn = document.getElementById('delete-selected-version-btn'); customContextMenu = document.getElementById('custom-context-menu'); saveDepartmentTemplateBtn = document.getElementById('save-department-as-template-btn'); saveEstimateTemplateBtn = document.getElementById('save-estimate-as-template-btn'); openTemplatesModalBtn = document.getElementById('open-templates-modal-btn'); templatesModal = document.getElementById('templates-modal'); if(!templatesModal) throw new Error("Krytyczny błąd: Modal 'templates-modal' nie znaleziony."); closeTemplatesModalBtn = document.getElementById('close-templates-modal-btn'); templateSelect = document.getElementById('template-select'); insertTemplateBtn = document.getElementById('insert-template-btn'); deleteTemplateBtn = document.getElementById('delete-template-btn'); branchSelectDropdown = document.getElementById('global-branch-filter');
-    tasksCatalogSearch = document.getElementById('tasks-catalog-search'); tasksCatalogListContainer = document.getElementById('tasks-catalog-list-container'); addNewTaskToCatalogBtn = document.getElementById('add-new-task-to-catalog-btn');
-    materialsCatalogSearch = document.getElementById('materials-catalog-search'); materialsCatalogListContainer = document.getElementById('materials-catalog-list-container'); addNewMaterialToCatalogBtn = document.getElementById('add-new-material-to-catalog-btn'); notesModal = document.getElementById('notes-modal'); if (!notesModal) throw new Error("Krytyczny błąd: Modal 'notes-modal' nie znaleziony."); notesModalTextarea = document.getElementById('notes-modal-textarea'); notesModalItemDesc = document.getElementById('notes-modal-item-desc'); saveNotesModalBtn = document.getElementById('save-notes-modal-btn'); cancelNotesModalBtn = document.getElementById('cancel-notes-modal-btn'); closeNotesModalXBtn = notesModal.querySelector('.close-modal-btn[data-modal-id="notes-modal"]');
-    confirmNotificationModal = document.getElementById('confirm-notification-modal');
-    if (confirmNotificationModal) {
-        confirmNotificationTitle = document.getElementById('confirm-notification-title');
-        confirmNotificationMessage = document.getElementById('confirm-notification-message');
-        confirmNotificationOkBtn = document.getElementById('confirm-notification-ok-btn');
-        confirmNotificationCancelBtn = document.getElementById('confirm-notification-cancel-btn');
-        confirmNotificationCloseBtnX = confirmNotificationModal.querySelector('.close-modal-btn[data-modal-id="confirm-notification-modal"]');
+    try { // <-- TUTAJ ZACZYNA SIĘ BLOK TRY DLA CAŁEJ FUNKCJI
+        costTableBody = document.getElementById('cost-table-body'); if (!costTableBody) throw new Error("Krytyczny błąd: Element 'cost-table-body' nie został znaleziony w DOM.");
+        grandTotalElement = document.getElementById('grand-total'); if (!grandTotalElement) throw new Error("Krytyczny błąd: Element 'grand-total' nie został znaleziony w DOM.");
+        notificationsContainer = document.getElementById('notifications-container'); if (!notificationsContainer) console.warn("Element 'notifications-container' nie znaleziony. Powiadomienia będą używać alert().");
+        addRowBtn = document.getElementById('add-row-btn'); addDepartmentBtn = document.getElementById('add-department-btn'); addSubDepartmentBtn = document.getElementById('add-subdepartment-btn'); clearAllBtn = document.getElementById('clear-all-btn'); saveEstimateVersionBtn = document.getElementById('save-estimate-version-btn'); previewEstimateDetailBtn = document.getElementById('preview-estimate-detail-btn'); materialSummaryBody = document.getElementById('material-summary-body'); materialGrandTotalElement = document.getElementById('material-grand-total'); materialProfitGrandTotalElement = document.getElementById('material-profit-grand-total'); materialSummaryTable = document.getElementById('material-summary-table'); customTaskModal = document.getElementById('custom-task-modal'); if (!customTaskModal) throw new Error("Krytyczny błąd: Modal 'custom-task-modal' nie znaleziony."); closeModalBtn = customTaskModal.querySelector('.close-modal-btn[data-modal-id="custom-task-modal"]'); saveModalBtn = document.getElementById('save-custom-task-btn'); cancelCustomTaskBtn = document.getElementById('cancel-custom-task-btn'); addMaterialNormBtn = document.getElementById('add-material-norm-btn'); customTaskMaterialsList = document.getElementById('custom-task-materials-list'); modalTitle = customTaskModal.querySelector('h2'); originalModalTitle = modalTitle ? modalTitle.textContent : "Zdefiniuj/Edytuj Pozycję Katalogową"; modalDescInput = document.getElementById('custom-task-desc'); modalUnitInput = document.getElementById('custom-task-unit'); modalNormRInput = document.getElementById('custom-task-norm-r'); modalWorkerCategorySelect = document.getElementById('custom-task-worker-category'); modalMaterialsSection = customTaskModal.querySelector('#modal-materials-section'); modalQuantityDiv = document.createElement('div'); modalQuantityDiv.classList.add('form-group'); modalQuantityDiv.innerHTML = `<label for="modal-task-quantity">Obmiar dla tej pozycji:</label><input type="text" id="modal-task-quantity" value="1,000">`; modalQuantityInput = modalQuantityDiv.querySelector('#modal-task-quantity'); materialSelectModal = document.getElementById('material-select-modal'); if (!materialSelectModal) throw new Error("Krytyczny błąd: Modal 'material-select-modal' nie znaleziony."); closeMaterialModalBtn = materialSelectModal.querySelector('.close-modal-btn[data-modal-id="material-select-modal"]'); materialSearchInput = document.getElementById('material-search-input'); materialSelectList = document.getElementById('material-select-list'); materialSelectNoResults = document.getElementById('material-select-no-results'); newMaterialNameInput = document.getElementById('new-material-name-input'); newMaterialUnitInput = document.getElementById('new-material-unit-input'); newMaterialCategoryInput = document.getElementById('new-material-category-input'); addNewMaterialBtn = document.getElementById('add-new-material-btn'); cancelMaterialSelectBtn = document.getElementById('cancel-material-select-btn'); csvFileInput = document.getElementById('csv-file-input'); loadCsvButton = document.getElementById('load-csv-button'); saveEstimateBtn = document.getElementById('save-estimate-btn'); loadEstimateBtn = document.getElementById('load-estimate-btn'); loadEstimateFileInput = document.getElementById('load-estimate-file-input'); commonUnitsDatalist = document.getElementById('commonUnitsData'); undoBtn = document.getElementById('undo-btn'); redoBtn = document.getElementById('redo-btn'); fixedActionButtons = document.getElementById('fixed-action-buttons'); scrollToTopBtn = document.getElementById('scroll-to-top-btn'); useSameRateCheckbox = document.getElementById('use-same-rate-for-all'); specialistRatesContainer = document.getElementById('specialist-rates-container'); openPrintSelectionBtn = document.getElementById('open-print-selection-btn'); printSelectionModal = document.getElementById('print-selection-modal'); if (!printSelectionModal) throw new Error("Krytyczny błąd: Modal 'print-selection-modal' nie znaleziony."); closePrintSelectionModalBtn = printSelectionModal.querySelector('.close-modal-btn[data-modal-id="print-selection-modal"]'); generateSelectedPrintsBtn = document.getElementById('generate-selected-prints-btn'); cancelPrintSelectionBtn = document.getElementById('cancel-print-selection-btn'); printOptionsContainer = document.getElementById('print-options-container'); toggleStyleConfiguratorBtn = document.getElementById('toggle-style-configurator-btn'); konfiguratorStyluContent = document.getElementById('konfigurator-stylu-content'); editEstimateDetailsBtn = document.getElementById('edit-estimate-details-btn'); estimateDetailsModal = document.getElementById('edit-estimate-details-modal'); if (!estimateDetailsModal) throw new Error("Krytyczny błąd: Modal 'edit-estimate-details-modal' nie znaleziony."); saveEstimateDetailsModalBtn = document.getElementById('save-estimate-details-modal-btn'); cancelEstimateDetailsModalBtn = document.getElementById('cancel-estimate-details-modal-btn'); modalEstimateTitleInput = document.getElementById('modal-estimate-title'); modalInvestmentLocationInput = document.getElementById('modal-investment-location'); modalInvestorInfoInput = document.getElementById('modal-investor-info'); modalContractorInfoInput = document.getElementById('modal-contractor-info'); modalVatRateSelect = document.getElementById('modal-vat-rate'); estimateVersionsSelect = document.getElementById('estimate-versions-select'); loadSelectedVersionBtn = document.getElementById('load-selected-version-btn'); deleteSelectedVersionBtn = document.getElementById('delete-selected-version-btn'); customContextMenu = document.getElementById('custom-context-menu'); saveDepartmentTemplateBtn = document.getElementById('save-department-as-template-btn'); saveEstimateTemplateBtn = document.getElementById('save-estimate-as-template-btn'); openTemplatesModalBtn = document.getElementById('open-templates-modal-btn'); templatesModal = document.getElementById('templates-modal'); if(!templatesModal) throw new Error("Krytyczny błąd: Modal 'templates-modal' nie znaleziony."); closeTemplatesModalBtn = document.getElementById('close-templates-modal-btn'); templateSelect = document.getElementById('template-select'); insertTemplateBtn = document.getElementById('insert-template-btn'); deleteTemplateBtn = document.getElementById('delete-template-btn'); branchSelectDropdown = document.getElementById('global-branch-filter');
+        tasksCatalogSearch = document.getElementById('tasks-catalog-search'); tasksCatalogListContainer = document.getElementById('tasks-catalog-list-container'); addNewTaskToCatalogBtn = document.getElementById('add-new-task-to-catalog-btn');
+        materialsCatalogSearch = document.getElementById('materials-catalog-search'); materialsCatalogListContainer = document.getElementById('materials-catalog-list-container'); addNewMaterialToCatalogBtn = document.getElementById('add-new-material-to-catalog-btn'); notesModal = document.getElementById('notes-modal'); if (!notesModal) throw new Error("Krytyczny błąd: Modal 'notes-modal' nie znaleziony."); notesModalTextarea = document.getElementById('notes-modal-textarea'); notesModalItemDesc = document.getElementById('notes-modal-item-desc'); saveNotesModalBtn = document.getElementById('save-notes-modal-btn'); cancelNotesModalBtn = document.getElementById('cancel-notes-modal-btn'); closeNotesModalXBtn = notesModal.querySelector('.close-modal-btn[data-modal-id="notes-modal"]');
+        confirmNotificationModal = document.getElementById('confirm-notification-modal');
+        if (confirmNotificationModal) {
+            confirmNotificationTitle = document.getElementById('confirm-notification-title');
+            confirmNotificationMessage = document.getElementById('confirm-notification-message');
+            confirmNotificationOkBtn = document.getElementById('confirm-notification-ok-btn');
+            confirmNotificationCancelBtn = document.getElementById('confirm-notification-cancel-btn');
+            confirmNotificationCloseBtnX = confirmNotificationModal.querySelector('.close-modal-btn[data-modal-id="confirm-notification-modal"]');
 
-        if(confirmNotificationOkBtn) confirmNotificationOkBtn.addEventListener('click', () => { if (currentConfirmCallback) currentConfirmCallback(); closeConfirmNotificationModal(); });
-        if(confirmNotificationCancelBtn) confirmNotificationCancelBtn.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
-        if(confirmNotificationCloseBtnX) confirmNotificationCloseBtnX.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
-    } else {
-        console.warn("Modal potwierdzenia ('confirm-notification-modal') nie znaleziony.");
-    }
-    console.log("Wszystkie elementy DOM przypisane.");
-
-    const fillBranchSelectors = () => { const selectors = [branchSelectDropdown, document.getElementById('modal-task-branch-select')]; if (typeof BRANCHES === 'undefined') { console.error("Zmienna BRANCHES nie jest zdefiniowana!"); return; } selectors.forEach(selector => { if (selector) { const firstOptionValue = selector.options[0]?.value; const firstOptionText = selector.options[0]?.textContent; selector.innerHTML = ''; if (firstOptionValue === "" && firstOptionText) { const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = firstOptionText; selector.appendChild(defaultOpt); } for (const branchKey in BRANCHES) { const option = document.createElement('option'); option.value = BRANCHES[branchKey].code; option.textContent = BRANCHES[branchKey].name; selector.appendChild(option); } } }); }; fillBranchSelectors();
-    if (modalWorkerCategorySelect) {
-        modalWorkerCategorySelect.innerHTML = '';
-        const currentWorkerRates = appState.getState('workerRatesSettings');
-        for (const catCode in currentWorkerRates) {
-            const option = document.createElement('option');
-            option.value = catCode; option.textContent = currentWorkerRates[catCode].name;
-            modalWorkerCategorySelect.appendChild(option);
+            if(confirmNotificationOkBtn) confirmNotificationOkBtn.addEventListener('click', () => { if (currentConfirmCallback) currentConfirmCallback(); closeConfirmNotificationModal(); });
+            if(confirmNotificationCancelBtn) confirmNotificationCancelBtn.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
+            if(confirmNotificationCloseBtnX) confirmNotificationCloseBtnX.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
+        } else {
+            console.warn("Modal potwierdzenia ('confirm-notification-modal') nie znaleziony.");
         }
-    } else console.warn("Selektor modalWorkerCategorySelect nie znaleziony.");
+        console.log("Wszystkie elementy DOM przypisane.");
 
-    if(modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
-    if(modalInvestmentLocationInput) modalInvestmentLocationInput.value = appState.getState('investmentLocation');
-    if(modalInvestorInfoInput) modalInvestorInfoInput.value = appState.getState('investorInfo');
-    if(modalContractorInfoInput) modalContractorInfoInput.value = appState.getState('contractorInfo');
-    if(modalVatRateSelect) modalVatRateSelect.value = appState.getState('vatRate');
-    const vatDisplay = document.getElementById('modal-vat-rate-display');
-    if(vatDisplay) vatDisplay.value = appState.getState('currentVatDisplayValue');
+        const fillBranchSelectors = () => { const selectors = [branchSelectDropdown, document.getElementById('modal-task-branch-select')]; if (typeof BRANCHES === 'undefined') { console.error("Zmienna BRANCHES nie jest zdefiniowana!"); return; } selectors.forEach(selector => { if (selector) { const firstOptionValue = selector.options[0]?.value; const firstOptionText = selector.options[0]?.textContent; selector.innerHTML = ''; if (firstOptionValue === "" && firstOptionText) { const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = firstOptionText; selector.appendChild(defaultOpt); } for (const branchKey in BRANCHES) { const option = document.createElement('option'); option.value = BRANCHES[branchKey].code; option.textContent = BRANCHES[branchKey].name; selector.appendChild(option); } } }); }; fillBranchSelectors();
+        if (modalWorkerCategorySelect) {
+            modalWorkerCategorySelect.innerHTML = '';
+            const currentWorkerRates = appState.getState('workerRatesSettings');
+            for (const catCode in currentWorkerRates) {
+                const option = document.createElement('option');
+                option.value = catCode; option.textContent = currentWorkerRates[catCode].name;
+                modalWorkerCategorySelect.appendChild(option);
+            }
+        } else console.warn("Selektor modalWorkerCategorySelect nie znaleziony.");
 
-    if(useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
-    const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
-    if (ogolnobudowlanyRateInput) {
-         const ratesSettings = appState.getState('workerRatesSettings');
-         setNumericInputValue(ogolnobudowlanyRateInput, ratesSettings.ogolnobudowlany?.rate || 0);
-         ogolnobudowlanyRateInput.addEventListener('input', debounce(handleLaborRateChange, 300));
-         ogolnobudowlanyRateInput.addEventListener('change', (e) => {
-            setNumericInputValue(e.target, parseFloat(e.target.value.replace(',', '.')) || 0.00);
-            if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
-        });
-    }
-    await updateDynamicSpecialistRatesVisibility();
-    if(useSameRateCheckbox) useSameRateCheckbox.addEventListener('change', handleUseSameRateChange);
+        if(modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
+        if(modalInvestmentLocationInput) modalInvestmentLocationInput.value = appState.getState('investmentLocation');
+        if(modalInvestorInfoInput) modalInvestorInfoInput.value = appState.getState('investorInfo');
+        if(modalContractorInfoInput) modalContractorInfoInput.value = appState.getState('contractorInfo');
+        if(modalVatRateSelect) modalVatRateSelect.value = appState.getState('vatRate');
+        const vatDisplay = document.getElementById('modal-vat-rate-display');
+        if(vatDisplay) vatDisplay.value = appState.getState('currentVatDisplayValue');
 
-    if (branchSelectDropdown) {
-        branchSelectDropdown.value = appState.getState('lastBranchFilter') || "";
-        branchSelectDropdown.addEventListener('change', (e) => {
-            appState.setState('lastBranchFilter', e.target.value);
-        });
-    }
-
-    appState.subscribe('estimateTitle', (newTitle) => { document.title = `${newTitle} - ${APP_VERSION}`; if (modalEstimateTitleInput && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalEstimateTitleInput.value = newTitle; });
-    appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-    appState.subscribe('useSameRateForAllSpecialists', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; await updateDynamicSpecialistRatesVisibility(); if (newValue) { const rates = appState.getState('workerRatesSettings'); const ogolnobudowlanyRate = rates.ogolnobudowlany?.rate || 0; const newRatesSettings = JSON.parse(JSON.stringify(rates)); Object.keys(newRatesSettings).forEach(cat => { if (cat !== 'ogolnobudowlany') newRatesSettings[cat].rate = ogolnobudowlanyRate; }); appState.setState('workerRatesSettings', newRatesSettings); } else { appState.notify('workerRatesSettingsChangedByToggle');} });
-    appState.subscribe('workerRatesSettings', async (newRates, oldRates) => { if (isRestoringState) return; if (JSON.stringify(newRates) === JSON.stringify(oldRates) && !appState.getState('useSameRateForAllSpecialists')) return; await updateDynamicSpecialistRatesVisibility(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-    appState.subscribe('workerRatesSettingsChangedByToggle', async () => { if (isRestoringState) return; await updateDynamicSpecialistRatesVisibility(); });
-    appState.subscribe('isHierarchicalMode', async (newValue, oldValue) => {
-        // Zmieniono: Ta subskrypcja jest wywoływana przez appState.setState('isHierarchicalMode')
-        // co jest ustawiane przez updateModelAndRender, gdy currentEstimateModel.isHierarchical się zmienia.
-        // Tutaj tylko reagujemy na zmianę flagi w appState (dla UI poza tabelą)
-        if (isRestoringState || newValue === oldValue) return;
-        document.body.classList.toggle('hierarchical-mode-active', newValue);
-        if(addDepartmentBtn) addDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
-        if(addSubDepartmentBtn) addSubDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
-        if(saveDepartmentTemplateBtn) { saveDepartmentTemplateBtn.style.display = newValue ? 'inline-block' : 'none'; if(!newValue) saveDepartmentTemplateBtn.disabled = true; }
-        if (newValue && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja już aktualizuje model
-        // Poniższe są już wywoływane przez updateModelAndRender:
-        // if(typeof renumberRows === 'function') renumberRows();
-        // if(typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-        // if(typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
-        // if(typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState();
-        // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-    });
-    appState.subscribe('estimateDataPotentiallyChanged', async () => {
-        // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
-        // więc jej działanie (recalculate, save) jest już pokryte.
-        // Można ją usunąć lub zostawić na wypadek, gdyby inne moduły potrzebowały tego sygnału
-        // i nie wywoływały updateModelAndRender bezpośrednio.
-        if (isRestoringState) return;
-        // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-        // if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
-    });
-    appState.subscribe('estimateRowsStructureChanged', () => {
-        // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
-        // jej działanie jest już pokryte.
-        if (isRestoringState) return;
-        // if (typeof renumberRows === 'function') renumberRows();
-        // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-    });
-    appState.subscribe('taskCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
-    appState.subscribe('materialCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof calculateMaterialSummary === 'function' && document.getElementById('materialy')?.classList.contains('active')) await calculateMaterialSummary(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
-    appState.subscribe('materialPricesImported', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-    appState.subscribe('estimateDataLoaded', async () => {
-        // Zmieniono: Ta subskrypcja jest wywoływana przez loadFullState,
-        // a ta funkcja już wywołuje updateModelAndRender, co pokrywa poniższe.
-        if (isRestoringState) return;
-        // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-        // if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility();
-        // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-    });
-    appState.subscribe('defaultTaskRowBackgroundColor', () => {
-        // Zmieniono: To jest teraz obsługiwane przez renderCostTable, która pobiera kolor z appState
-        if (!isRestoringState && typeof renderCostTable === 'function') {
-            renderCostTable(currentEstimateModel);
+        if(useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
+        const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
+        if (ogolnobudowlanyRateInput) {
+             const ratesSettings = appState.getState('workerRatesSettings');
+             setNumericInputValue(ogolnobudowlanyRateInput, ratesSettings.ogolnobudowlany?.rate || 0);
+             ogolnobudowlanyRateInput.addEventListener('input', debounce(handleLaborRateChange, 300));
+             ogolnobudowlanyRateInput.addEventListener('change', (e) => {
+                setNumericInputValue(e.target, parseFloat(e.target.value.replace(',', '.')) || 0.00);
+                if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
+            });
         }
-    });
+        await updateDynamicSpecialistRatesVisibility();
+        if(useSameRateCheckbox) useSameRateCheckbox.addEventListener('change', handleUseSameRateChange);
+
+        if (branchSelectDropdown) {
+            branchSelectDropdown.value = appState.getState('lastBranchFilter') || "";
+            branchSelectDropdown.addEventListener('change', (e) => {
+                appState.setState('lastBranchFilter', e.target.value);
+            });
+        }
+
+        appState.subscribe('estimateTitle', (newTitle) => { document.title = `${newTitle} - ${APP_VERSION}`; if (modalEstimateTitleInput && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalEstimateTitleInput.value = newTitle; });
+        appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+        appState.subscribe('useSameRateForAllSpecialists', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; await updateDynamicSpecialistRatesVisibility(); if (newValue) { const rates = appState.getState('workerRatesSettings'); const ogolnobudowlanyRate = rates.ogolnobudowlany?.rate || 0; const newRatesSettings = JSON.parse(JSON.stringify(rates)); Object.keys(newRatesSettings).forEach(cat => { if (cat !== 'ogolnobudowlany') newRatesSettings[cat].rate = ogolnobudowlanyRate; }); appState.setState('workerRatesSettings', newRatesSettings); } else { appState.notify('workerRatesSettingsChangedByToggle');} });
+        appState.subscribe('workerRatesSettings', async (newRates, oldRates) => { if (isRestoringState) return; if (JSON.stringify(newRates) === JSON.stringify(oldRates) && !appState.getState('useSameRateForAllSpecialists')) return; await updateDynamicSpecialistRatesVisibility(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+        appState.subscribe('workerRatesSettingsChangedByToggle', async () => { if (isRestoringState) return; await updateDynamicSpecialistRatesVisibility(); });
+        appState.subscribe('isHierarchicalMode', async (newValue, oldValue) => {
+            // Zmieniono: Ta subskrypcja jest wywoływana przez appState.setState('isHierarchicalMode')
+            // co jest ustawiane przez updateModelAndRender, gdy currentEstimateModel.isHierarchical się zmienia.
+            // Tutaj tylko reagujemy na zmianę flagi w appState (dla UI poza tabelą)
+            if (isRestoringState || newValue === oldValue) return;
+            document.body.classList.toggle('hierarchical-mode-active', newValue);
+            if(addDepartmentBtn) addDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
+            if(addSubDepartmentBtn) addSubDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
+            if(saveDepartmentTemplateBtn) { saveDepartmentTemplateBtn.style.display = newValue ? 'inline-block' : 'none'; if(!newValue) saveDepartmentTemplateBtn.disabled = true; }
+            if (newValue && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja już aktualizuje model
+            // Poniższe są już wywoływane przez updateModelAndRender:
+            // if(typeof renumberRows === 'function') renumberRows();
+            // if(typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
+            // if(typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
+            // if(typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState();
+            // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
+        });
+        appState.subscribe('estimateDataPotentiallyChanged', async () => {
+            // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
+            // więc jej działanie (recalculate, save) jest już pokryte.
+            // Można ją usunąć lub zostawić na wypadek, gdyby inne moduły potrzebowały tego sygnału
+            // i nie wywoływały updateModelAndRender bezpośrednio.
+            if (isRestoringState) return;
+            // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
+            // if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
+        });
+        appState.subscribe('estimateRowsStructureChanged', () => {
+            // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
+            // jej działanie jest już pokryte.
+            if (isRestoringState) return;
+            // if (typeof renumberRows === 'function') renumberRows();
+            // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
+        });
+        appState.subscribe('taskCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
+        appState.subscribe('materialCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof calculateMaterialSummary === 'function' && document.getElementById('materialy')?.classList.contains('active')) await calculateMaterialSummary(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
+        appState.subscribe('materialPricesImported', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+        appState.subscribe('estimateDataLoaded', async () => {
+            // Zmieniono: Ta subskrypcja jest wywoływana przez loadFullState,
+            // a ta funkcja już wywołuje updateModelAndRender, co pokrywa poniższe.
+            if (isRestoringState) return;
+            // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
+            // if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility();
+            // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
+        });
+        appState.subscribe('defaultTaskRowBackgroundColor', () => {
+            // Zmieniono: To jest teraz obsługiwane przez renderCostTable, która pobiera kolor z appState
+            if (!isRestoringState && typeof renderCostTable === 'function') {
+                renderCostTable(currentEstimateModel);
+            }
+        });
 
 
-    populateCommonUnitsDatalist(); setupTabs();
-    await loadEstimateState(); // Zmieniono: Ta funkcja ładuje dane do modelu i wywołuje renderCostTable
-    console.log("Stan kosztorysu wczytany.");
+        populateCommonUnitsDatalist(); setupTabs();
+        await loadEstimateState(); // Zmieniono: Ta funkcja ładuje dane do modelu i wywołuje renderCostTable
+        console.log("Stan kosztorysu wczytany.");
 
-    if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
-    if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
-    if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglądu'; }); }
-    if(undoBtn) undoBtn.addEventListener('click', undo); if(redoBtn) redoBtn.addEventListener('click', redo);
-    if (scrollToTopBtn) { scrollToTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }); }
-    document.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey) { if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if(undoBtn && !undoBtn.disabled) undo(); } else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); if(redoBtn && !redoBtn.disabled) redo(); } } });
-    if (customContextMenu) { document.addEventListener('contextmenu', showCustomContextMenu); customContextMenu.addEventListener('click', handleContextMenuAction); }
-    document.addEventListener('click', (event) => { if (customContextMenu && customContextMenu.style.display === 'block' && !customContextMenu.contains(event.target)) hideCustomContextMenu(); if (activeDropdown && activeSearchInput && !activeSearchInput.contains(event.target) && !activeDropdown.contains(event.target) && !event.target.closest('.suggestions-dropdown')) if(typeof hideAllDropdowns === 'function') hideAllDropdowns(); const isAddButton = event.target.closest('#add-row-btn') || event.target.closest('#add-department-btn') || event.target.closest('#add-subdepartment-btn'); const isIndicator = event.target.closest(`#${INDICATOR_ROW_ID}`); if (!isAddButton && !isIndicator) removeInsertIndicator(); if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex' && !colorPaletteDiv.contains(event.target) && !event.target.classList.contains('color-picker-icon')) { colorPaletteDiv.remove();} });
-    window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (activeDropdown && typeof hideAllDropdowns === 'function') hideAllDropdowns(); if (customContextMenu && customContextMenu.style.display === 'block') hideCustomContextMenu(); removeInsertIndicator(); if(notesModal && notesModal.style.display === 'block' && typeof closeNotesModal === 'function') closeNotesModal(); if(customTaskModal && customTaskModal.style.display === 'block' && typeof closeCustomTaskModal === 'function') closeCustomTaskModal(); if(materialSelectModal && materialSelectModal.style.display === 'block' && typeof closeMaterialSelectModal === 'function') closeMaterialSelectModal(); if(printSelectionModal && printSelectionModal.style.display === 'block' && typeof closePrintSelectionModal === 'function') closePrintSelectionModal(); if(estimateDetailsModal && estimateDetailsModal.style.display === 'block' && typeof closeEstimateDetailsModal === 'function') closeEstimateDetailsModal(); if(templatesModal && templatesModal.style.display === 'block' && typeof closeTemplatesModal === 'function') closeTemplatesModal(); if(confirmNotificationModal && confirmNotificationModal.style.display === 'block') { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); } if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex') { colorPaletteDiv.remove(); } } });
+        if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
+        if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
+        if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglądu'; }); }
+        if(undoBtn) undoBtn.addEventListener('click', undo); if(redoBtn) redoBtn.addEventListener('click', redo);
+        if (scrollToTopBtn) { scrollToTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }); }
+        document.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey) { if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if(undoBtn && !undoBtn.disabled) undo(); } else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); if(redoBtn && !redoBtn.disabled) redo(); } } });
+        if (customContextMenu) { document.addEventListener('contextmenu', showCustomContextMenu); customContextMenu.addEventListener('click', handleContextMenuAction); }
+        document.addEventListener('click', (event) => { if (customContextMenu && customContextMenu.style.display === 'block' && !customContextMenu.contains(event.target)) hideCustomContextMenu(); if (activeDropdown && activeSearchInput && !activeSearchInput.contains(event.target) && !activeDropdown.contains(event.target) && !event.target.closest('.suggestions-dropdown')) if(typeof hideAllDropdowns === 'function') hideAllDropdowns(); const isAddButton = event.target.closest('#add-row-btn') || event.target.closest('#add-department-btn') || event.target.closest('#add-subdepartment-btn'); const isIndicator = event.target.closest(`#${INDICATOR_ROW_ID}`); if (!isAddButton && !isIndicator) removeInsertIndicator(); if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex' && !colorPaletteDiv.contains(event.target) && !event.target.classList.contains('color-picker-icon')) { colorPaletteDiv.remove();} });
+        window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (activeDropdown && typeof hideAllDropdowns === 'function') hideAllDropdowns(); if (customContextMenu && customContextMenu.style.display === 'block') hideCustomContextMenu(); removeInsertIndicator(); if(notesModal && notesModal.style.display === 'block' && typeof closeNotesModal === 'function') closeNotesModal(); if(customTaskModal && customTaskModal.style.display === 'block' && typeof closeCustomTaskModal === 'function') closeCustomTaskModal(); if(materialSelectModal && materialSelectModal.style.display === 'block' && typeof closeMaterialSelectModal === 'function') closeMaterialSelectModal(); if(printSelectionModal && printSelectionModal.style.display === 'block' && typeof closePrintSelectionModal === 'function') closePrintSelectionModal(); if(estimateDetailsModal && estimateDetailsModal.style.display === 'block' && typeof closeEstimateDetailsModal === 'function') closeEstimateDetailsModal(); if(templatesModal && templatesModal.style.display === 'block' && typeof closeTemplatesModal === 'function') closeTemplatesModal(); if(confirmNotificationModal && confirmNotificationModal.style.display === 'block') { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); } if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex') { colorPaletteDiv.remove(); } } });
 
-    await initDBEstimateVersions();
-    initAutoSaveSettingsControls();
-    initUserActivityListeners(); // Rozpocznij śledzenie aktywności
-    startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
+        await initDBEstimateVersions();
+        initAutoSaveSettingsControls();
+        initUserActivityListeners(); // Rozpocznij śledzenie aktywności
+        startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
 
-    if (document.querySelector('.tab.active[data-tab="ustawienia"]')) {
-        if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
-    }
+        if (document.querySelector('.tab.active[data-tab="ustawienia"]')) {
+            if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
+        }
 
-    updateUndoRedoButtons();
-    <span style="color: deeppink;">// if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); // USUNIĘTE: Teraz renderCostTable to robi</span>
-    console.log(`%c${APP_VERSION} zainicjalizowany częściowo (core). Dalsza inicjalizacja w modułach.`, "color: green;");
-};
-// ==========================================================================
-// SEKCJA 11: GŁÓWNY PUNKT WEJŚCIA APLIKACJI (DOMContentLoaded)
-// ==========================================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log(`DOM Content Loaded. Start skryptu ${APP_VERSION}...`);
-    let localCatalogImporterInstance;
-    try {
-        if (typeof dbService === 'undefined' || typeof dbService.openDB !== 'function') throw new Error("Krytyczny błąd: dbService nie jest zdefiniowane.");
-        await dbService.openDB(); console.log("Połączenie z IndexedDB (główna baza) nawiązane.");
-        if (typeof CatalogImporter === 'undefined') throw new Error("Krytyczny błąd: Klasa CatalogImporter nie jest zdefiniowana.");
-        localCatalogImporterInstance = new CatalogImporter(dbService); console.log("Instancja CatalogImporter utworzona.");
-        await localCatalogImporterInstance.checkAndImportInitialData(); console.log("Sprawdzanie i import danych katalogowych zakończone.");
-        if (typeof appState !== 'undefined' && typeof appState.init === 'function') appState.init();
-        else throw new Error("Krytyczny błąd: Zarządca stanu appState nie jest zdefiniowany.");
-        await initApp();
-        if (typeof initEstimateLogic === 'function') await initEstimateLogic(); else console.warn("Funkcja initEstimateLogic nie znaleziona.");
-        if (typeof initModalsAndIO === 'function') await initModalsAndIO(); else console.warn("Funkcja initModalsAndIO nie znaleziona.");
-        if (typeof initCatalogsUI === 'function') await initCatalogsUI(); else console.warn("Funkcja initCatalogsUI nie znaleziona.");
+        updateUndoRedoButtons();
+        // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); // USUNIĘTE: Teraz renderCostTable to robi
         console.log(`%cPełna inicjalizacja ${APP_VERSION} zakończona.`, "color: green; font-weight: bold;");
         saveToLocalStorage(STORAGE_KEYS.APP_VERSION_LS, APP_VERSION);
     } catch (error) {
         console.error("KRYTYCZNY BŁĄD INICJALIZACJI APLIKACJI:", error);
-        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działać.`;
+        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działa.`;
         if (error.message) { if (error.message.toLowerCase().includes("json")) errorMessageToUser += "\n\nMożliwy problem z formatem plików JSON. Sprawdź konsolę (F12)."; else if (error.message.toLowerCase().includes("dbservice") || error.message.toLowerCase().includes("catalogimporter") || error.message.toLowerCase().includes("indexeddb")) errorMessageToUser += "\n\nMożliwy problem z inicjalizacją bazy danych lub katalogów. Sprawdź konsolę (F12) i kolejność skryptów."; else if (error.message.toLowerCase().includes("dom") || error.message.toLowerCase().includes("getelementbyid") || error.message.toLowerCase().includes("not found in dom")) errorMessageToUser += "\n\nMożliwy problem ze znalezieniem elementu HTML. Sprawdź index.html i konsolę (F12)."; else if (error.message.toLowerCase().includes("is not defined")) errorMessageToUser += `\n\nProblem z dostępnością funkcji lub zmiennej (${error.message.split(' ')[0]}). Sprawdź konsolę (F12) i kolejność skryptów.`; } errorMessageToUser += "\n\nSprawdź konsolę (F12) po szczegóły.";
         if (typeof showNotification === 'function' && notificationsContainer) { showNotification(errorMessageToUser.replace(/\n/g, "<br>"), 'error', 0); } else { alert(errorMessageToUser.replace(/\n\n/g, '\n')); }
         if (document.body) { document.body.innerHTML = `<div style="padding: 20px; text-align: left; font-family: Arial, sans-serif; background-color: #ffebee; border: 2px solid #c62828; margin: 20px auto; max-width: 800px; border-radius: 8px;"><h1 style="color: #c62828;">Błąd Krytyczny Aplikacji EazyKoszt</h1><p>${errorMessageToUser.replace(/\n/g, "<br>")}</p></div>`;}
     }
-});
+} // <-- TUTAJ KOŃCZY SIĘ FUNKCJA initApp
 
-console.log("Plik EazyKoszt 0.5.0-script-core.js załadowany.");
-
-/*
-
-**Notatki dotyczące zmian w `js/script-core.js`:**
-
-1.  **`currentEstimateModel`**: Nowy globalny obiekt `currentEstimateModel` został zadeklarowany, aby przechowywać cały stan kosztorysu (wiersze, kolory działów, tryb hierarchiczny) w jednym miejscu.
-2.  **`departmentColors` i `isHierarchical`**: Te globalne zmienne/wartości zostały usunięte lub ich definicje przeniesione do `currentEstimateModel`, aby centralizować stan.
-3.  **`updateModelAndRender(newModelData)`**: Nowa centralna funkcja. Akceptuje obiekt z danymi, które mają zaktualizować `currentEstimateModel`, następnie wywołuje `renderCostTable` (z `script-estimate.js`), `recalculateAllRowsAndTotals` i `saveEstimateState`/`saveHistoryState`. Każda modyfikacja modelu kosztorysu (dodawanie/usuwanie wierszy, zmiana danych w wierszach, zmiana kolorów) powinna teraz prowadzić do wywołania `updateModelAndRender`.
-4.  **`getCurrentEstimateDisplayState()`**: Zmieniono, aby zwracała po prostu głęboką kopię `currentEstimateModel`.
-5.  **`restoreEstimateDisplayState(state)`**: Zmieniono, aby wczytywała dane bezpośrednio do `currentEstimateModel` i wywoływała `renderCostTable`, co eliminuje starą logikę iterowania po `state.rows` i ręcznego dodawania DOM elementów.
-6.  **`saveEstimateState()`**: Zmieniono, aby zapisywała `currentEstimateModel` do `localStorage`.
-7.  **`loadEstimateState()`**: Zmieniono, aby wczytywała dane do `currentEstimateModel` i wywoływała `renderCostTable`.
-8.  **`openColorPalette(event, targetDomRow)`**: Zmieniono, aby aktualizowała `departmentColors` w `currentEstimateModel` i wywoływała `updateModelAndRender`. Usunięto wewnętrzne wywołania `applyRowColor` itp., ponieważ `renderCostTable` teraz zarządza całym renderowaniem kolorów.
-9.  **`handleContextMenuAction` (akcja `delete`)**: Zmieniono, aby usuwała wiersze bezpośrednio z tablicy `currentEstimateModel.rows` (wraz z ich potomkami w trybie hierarchicznym) i aktualizowała `departmentColors` w modelu. Następnie wywołuje `updateModelAndRender` do ponownego renderowania tabeli.
-10. **Usunięcie funkcji związanych z DOM-owym kolorowaniem**: Funkcje takie jak `applyRowColor`, `applyInheritedColors`, `applyTaskColorsUnderParent`, `reapplyAllRowColors`, `getParentDepartmentRow`, `getParentSubDepartmentRow` zostały usunięte, ponieważ ich logika została zintegrowana w `renderCostTable` i jest teraz w pełni oparta na modelu.
-11. **Subskrypcje `appState`**: Dostosowano niektóre subskrypcje (`isHierarchicalMode`, `estimateDataPotentiallyChanged`, `estimateRowsStructureChanged`, `defaultTaskRowBackgroundColor`, `estimateDataLoaded`), aby uwzględniać, że `updateModelAndRender` już zarządza renderowaniem i obliczeniami po zmianach modelu.
-*/
+console.log("Plik EazyKoszt 0.4.2-script-core.js załadowany.");

@@ -22,7 +22,7 @@ const StyleConfiguratorModule = {
         'print_print-style-h1-color': '#000000', 'print_print-style-h1-font-size': '16',
         'print_print-style-h-border-color': '#cccccc', 'print_print-style-table-header-bg': '#e8e8e8',
         'print_print-style-table-header-text-color': '#000000', 'print_print-style-table-border-color': '#bbbbbb',
-        'print_print-style-table-font-size': '9', 
+        'print_print-style-table-font-size': '9',
         // ZMIANA: Usunięto print_print-style-dept-row-bg itp., bo kolory wydruku będą teraz brane z dynamicznych stylów wiersza
         // Można by ewentualnie dodać opcję "drukuj z kolorami" lub "drukuj czarno-biało"
     },
@@ -128,7 +128,7 @@ const StyleConfiguratorModule = {
         let printCss = "\n/* --- Style użytkownika (wydruk) --- */\n";
         let addedRules = false;
         if (!this.styleInputs || this.styleInputs.length === 0) { console.warn("StyleConfiguratorModule.styleInputs nie jest zainicjowane podczas wywołania getUserPrintStylesCss."); return ""; }
-        
+
         // Dodaj styl dla --task-row-default-bg jeśli jest zdefiniowany i nie jest 'transparent'
         const taskRowBg = activeStyles['--task-row-default-bg'];
         if (taskRowBg && taskRowBg !== 'transparent') {
@@ -140,16 +140,16 @@ const StyleConfiguratorModule = {
         this.styleInputs.forEach(input => {
             const key = this.generateKeyForInput(input);
             if (!key || !key.startsWith('print_')) return; // Ogólne style wydruku, nie specyficzne dla wierszy
-            
+
             const value = activeStyles[key];
             const isDifferentOrDefaultMissing = this.defaultStyles[key] === undefined || (value && value !== this.defaultStyles[key]);
             const isSignificantColor = input.type === 'color' && value && value.toLowerCase() !== '#000000' && value.toLowerCase() !== '#ffffff' && value.toLowerCase() !== 'transparent';
-            
+
             if (value && (isDifferentOrDefaultMissing || isSignificantColor)) {
                 let selector, property, unit = '';
                 if (input.dataset.printSelector && input.dataset.printProperty) { selector = input.dataset.printSelector; property = input.dataset.printProperty; unit = input.dataset.printUnit || ''; }
                 else if (input.dataset.printTarget && input.dataset.printProperty) { selector = input.dataset.printTarget; property = input.dataset.printProperty; unit = input.dataset.printUnit || ''; }
-                
+
                 if (selector && property) {
                     // Pomijamy style dla tła działów/poddziałów, bo są dynamiczne
                     if (key.includes('dept-row-bg') || key.includes('subdept-row-bg')) return;
