@@ -1,4 +1,4 @@
-/* style.css - KOSZTPOL v3.0 - wersja 0.4.2 - Zrestrukturyzowany */
+/* style.css - KOSZTPOL v3.0 - wersja 0.6.1A - Zrestrukturyzowany */
 
 /* ==========================================================================
    1. SEKCJA: ZMIENNE GLOBALNE CSS I PODSTAWOWY RESET
@@ -246,20 +246,16 @@ input[type="checkbox"] { margin-right: 5px; vertical-align: middle; }
     box-shadow: inset 0 0 0 1px var(--secondary-color);
 }
 
-/* Inputy w wierszach zadań */
-#cost-table-body tr[data-row-type="task"] > td { /* Domyślne tło dla wierszy zadań */
-    background-color: var(--task-row-default-bg, transparent);
-    color: var(--text-color);
+/* Tło dla wierszy zadań - domyślnie z configa, ale JS może nadpisać kolor dziedziczeniem */
+#cost-table-body tr[data-row-type="task"] > td {
+    background-color: var(--task-row-default-bg);
+    color: var(--text-color); /* Fallback, może być nadpisane przez JS */
 }
 #cost-table-body tr[data-row-type="task"] .task-search-input,
-#cost-table-body tr[data-row-type="task"] .quantity-input { /* Inputy w zadaniach dziedziczą kolor */
-    color: inherit;
+#cost-table-body tr[data-row-type="task"] .quantity-input {
+    color: inherit; /* Dziedzicz kolor tekstu z rodzica */
 }
-#cost-table-body tr[data-row-type="task"] input[type=number],
-#cost-table-body tr[data-row-type="task"] input[type=text] {
-    padding: 5px 7px; font-size: 13px; width: 100%;
-}
-#cost-table-body tr[data-row-type="task"] input[type=number] { text-align: right; }
+
 
 /* Podświetlenie aktywnego klikniętego wiersza */
 #cost-table-body tr.last-clicked-row-highlight > td {
@@ -560,7 +556,6 @@ tr.insert-indicator-row { position: relative; top: -1px; }
 #material-summary-table tr.zero-price input.material-summary-purchase-price-input {
     font-weight: bold; color: #721c24; background-color: transparent;
 }
-#material-summary-table tr.zero-price td.material-summary-value { font-weight: bold; }
 #material-summary-table thead th[data-sort-key] { cursor: pointer; position: relative; }
 #material-summary-table thead th[data-sort-key]::after { /* Strzałki sortowania */
     content: ''; position: absolute; right: 8px; top: 50%;
@@ -783,6 +778,7 @@ tr.insert-indicator-row { position: relative; top: -1px; }
     gap: 18px; align-items: start;
 }
 .settings-grid-layout .settings-section { margin-bottom: 0; }
+.settings-grid-layout .settings-section:last-child { margin-bottom: 0; }
 
 /* Ustawienia stawek robocizny */
 .specialist-rates-compact .form-group { margin-bottom: 8px; }
@@ -1016,16 +1012,3 @@ tr.insert-indicator-row { position: relative; top: -1px; }
     #analysis-labor-costs .flex-container { flex-direction: column; align-items: center; }
     .labor-analysis-chart-wrapper { width: 100%; max-width: 320px; margin-bottom: 18px; }
     .labor-analysis-table-wrapper { width: 100%; }
-}
-
-/* ==========================================================================
-   17. SEKCJA: RÓŻNE (np. ukrywanie strzałek w input[type=number])
-   ========================================================================== */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-input[type=number] {
-    -moz-appearance: textfield; /* Dla Firefox */
-}
