@@ -1,0 +1,287 @@
+/* print-style.css - KOSZTPOL v3.0 - Przywrócenie przejrzystości wydruków */
+
+/* ========================================================================== */
+/* SEKCJA: PODSTAWOWE USTAWIENIA WYDRUKU (CZCIONKA, TŁO, MARGINESY)           */
+/* ========================================================================== */
+body {
+    font-size: 10pt;
+    background-color: #fff !important;
+    color: #000 !important;
+    margin: 15mm;
+    font-family: Arial, sans-serif;
+    line-height: 1.3;
+}
+
+/* ========================================================================== */
+/* SEKCJA: STYLE NAGŁÓWKÓW (H1, H2, H3) NA WYDRUKU                         */
+/* ========================================================================== */
+h1, h2, h3 {
+    color: #000 !important;
+    border-bottom: 1px solid #ccc;
+    margin-top: 1.5em;
+    margin-bottom: 0.8em;
+    page-break-after: avoid;
+    font-family: Arial, sans-serif;
+}
+h1 { font-size: 16pt; text-align: center; font-weight: bold; margin-bottom: 1em;}
+h2 { font-size: 13pt; font-weight: bold; margin-bottom: 0.6em;}
+h3 { font-size: 11pt; font-weight: bold; margin-bottom: 0.5em;}
+
+h1 + hr + table,
+.container h1 + .section.details + .section.summary + .signatures,
+.container h1 + .section.details + h2 + table,
+/* Dodajemy nową sekcję analizy zysku materiałów, aby też zaczynała się od nowej strony */
+.analysis-print-section:has(h3:contains("Analiza Zysku z Zakupu Materiałów"))
+{
+    page-break-before: always;
+}
+
+h1 + hr {
+    margin-bottom: 0.5em !important;
+}
+h1:has(+ hr + table) {
+    margin-bottom: 0.3em !important;
+    text-align: left !important;
+    border-bottom: none !important;
+    font-size: 14pt !important;
+}
+.container h1 {
+    text-align: center !important;
+    border-bottom: 2px solid #000 !important;
+    font-size: 16pt !important;
+    margin-bottom: 20px !important;
+}
+
+
+/* ========================================================================== */
+/* SEKCJA: OGÓLNE STYLE TABEL NA WYDRUKU                                    */
+/* ========================================================================== */
+table {
+    border: 1px solid #aaa;
+    font-size: 9pt;
+    width: 100%;
+    page-break-inside: avoid;
+    margin-top: 0.2em;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+th, td {
+    border: 1px solid #bbb;
+    padding: 4px 5px;
+    vertical-align: top;
+    word-wrap: break-word;
+}
+th {
+    background-color: #e8e8e8 !important;
+    font-weight: bold !important;
+    text-align: left;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+tbody tr { page-break-inside: avoid; }
+tbody tr:nth-child(even) {
+    background-color: transparent !important; /* Usunięto #f9f9f9, aby JS mógł kontrolować kolory */
+}
+
+/* ========================================================================== */
+/* SEKCJA: DOPASOWANIE SZEROKOŚCI KOLUMN OPISOWYCH NA WYDRUKACH             */
+/* ========================================================================== */
+/* Kosztorys Szczegółowy (kolumna "Pozycja/Normy") */
+body > h1:first-of-type + hr + table thead tr th:nth-child(2),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(2) {
+    width: 38% !important;
+    min-width: 50mm;
+}
+body > h1:first-of-type + hr + table thead tr th:nth-child(1),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(1)  { width: 6% !important; }
+body > h1:first-of-type + hr + table thead tr th:nth-child(3),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(3)  { width: 7% !important; }
+body > h1:first-of-type + hr + table thead tr th:nth-child(4),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(4)  { width: 9% !important; }
+body > h1:first-of-type + hr + table thead tr th:nth-child(5),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(5),
+body > h1:first-of-type + hr + table thead tr th:nth-child(6),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(6),
+body > h1:first-of-type + hr + table thead tr th:nth-child(7),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(7),
+body > h1:first-of-type + hr + table thead tr th:nth-child(8),
+body > h1:first-of-type + hr + table tbody tr td:nth-child(8)  { width: 10% !important; }
+
+
+/* Zestawienie Pozycji (Opis) i Oferta (Opis pozycji) */
+body > .container table thead tr th:nth-child(2),
+body > .container table tbody tr td:nth-child(2),
+body > h1 + hr + table:not(:has(th:nth-child(8))) thead tr th:nth-child(2),
+body > h1 + hr + table:not(:has(th:nth-child(8))) tbody tr td:nth-child(2) {
+    width: 50% !important;
+    min-width: 60mm;
+}
+
+/* Wykaz Materiałów - szerokości dla wydruku (bez kolumn zysku) */
+/* Kolumny to: Materiał, Kat., Ilość, j.m., Cena jedn. (Y), Wartość (Y) */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) { /* Identyfikacja tabeli Wykazu Materiałów dla klienta */
+    table-layout: auto;
+}
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(1), /* Materiał */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(1) {
+    width: 40%; /* Zwiększamy szerokość dla nazwy materiału */
+    min-width: 50mm;
+}
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(2), /* Kategoria */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(2) {
+    width: 10%; text-align: center !important; white-space: nowrap;
+}
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(3), /* Ilość */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(3),
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(5), /* Cena jedn. Y */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(5),
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(6),  /* Wartość Y */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(6) {
+    width: 15%; text-align: right !important; white-space: nowrap;
+}
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(4), /* j.m. */
+table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(4) {
+    width: 10%; text-align: center !important; white-space: nowrap;
+}
+/* --- KONIEC SEKCJI: Dopasowanie szerokości kolumn opisowych --- */
+
+
+/* Ukrywanie elementów */
+.print-hide, .tab-container, .modal:not(#print-content-modal),
+#cost-table .col-actions,
+#fixed-action-buttons,
+#analiza:not(.print-specific-analysis-section), /* Ukrywanie zakładki Analiza na wydruku - jej zawartość jest generowana specyficznie */
+.icons-wrapper .color-picker-icon /* Ukryj ikonę wyboru koloru na wydruku */
+{ display: none !important; }
+
+.print-hide-internal { display: none !important; } /* Ukrywa elementy tylko na wydruku */
+
+.print-only { display: block !important; }
+#cost-table .suggestions-container input, #cost-table .suggestions-container .suggestions-dropdown { display: none !important; }
+#cost-table th.col-drag, #cost-table td.col-drag { display: none !important; }
+#material-summary-table th.material-summary-value-header,
+#material-summary-table td.material-summary-value,
+#material-summary-table th[data-sort-key="category"],
+#material-summary-table td:nth-child(2)
+{ display: table-cell !important; }
+/* Ukryj kolumny związane z ceną zakupu i zyskiem w tabeli #material-summary-table na standardowym wydruku */
+#material-summary-table th[data-sort-key="purchasePriceX"],
+#material-summary-table td:nth-child(6), /* Cena Zakupu (X) */
+#material-summary-table th:nth-child(7), /* Zysk/Strata Jedn. */
+#material-summary-table td:nth-child(7),
+#material-summary-table th[data-sort-key="profitValue"],
+#material-summary-table td:nth-child(9), /* Zysk/Strata Sum. */
+#material-summary-table tfoot tr:has(#material-profit-grand-total) /* Ukryj wiersz sumy zysku */
+{ display: none !important; }
+
+/* Style dla przycisku "DRUKUJ" w oknie podglądu wydruku */
+.print-button-print-view {
+    display: block; /* Domyślnie widoczny w oknie podglądu */
+}
+@media print {
+    .print-button-print-view {
+        display: none !important; /* Ukryty podczas faktycznego drukowania */
+    }
+}
+
+
+/* Style norm w wydruku kosztorysu */
+#cost-table .norms-display {
+    font-size: 8pt; background-color: transparent !important; border: none !important;
+    margin-top: 3px; padding: 0; color: #333; display: block !important;
+    page-break-inside: avoid;
+}
+#cost-table .norms-display ul { margin-left: 10px; list-style: disc; padding-left: 15px; }
+#cost-table .norms-display strong { font-weight: bold; }
+
+/* Style wierszy specjalnych (Dział/Poddział) */
+tr.department-row-print td, tr[data-row-type="department"] td:not(.print-hide) {
+    /* background-color: #e9ecef !important; - JS będzie zarządzał tłem */
+    font-weight: bold;
+    border-top: 2px solid #aaa !important;
+    border-bottom: 1px solid #aaa !important;
+    padding: 6px 5px;
+    /* color: #000; - JS będzie zarządzał kolorem tekstu */
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+tr.subdepartment-row-print td, tr[data-row-type="subdepartment"] td:not(.print-hide) {
+    /* background-color: #f8f9fa !important; - JS będzie zarządzał tłem */
+    font-style: italic;
+    border-top: 1px dashed #ccc !important;
+    border-bottom: 1px dashed #ccc !important;
+    padding: 5px 5px 5px 15px;
+    /* color: #000; - JS będzie zarządzał kolorem tekstu */
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+/* Tło dla komórek podsumowania działu może pozostać stałe lub być dostosowane przez JS */
+tr.department-summary-print td {
+    border-top: 1px dashed #ccc !important;
+    border-bottom: 2px solid #aaa !important;
+    padding: 4px 5px; font-style: italic;
+    background-color: #f0f0f0 !important; /* Można to zmienić lub usunąć, jeśli JS ma zarządzać */
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+tr.department-summary-print td:first-child { text-align: right; font-weight: bold; }
+tr.department-summary-print td:last-child { text-align: right; font-weight: bold; font-style: normal !important;}
+
+tr.department-row-print td:last-child:not(.print-hide),
+tr.subdepartment-row-print td:last-child:not(.print-hide),
+tr[data-row-type="department"] td:last-child:not(.print-hide),
+tr[data-row-type="subdepartment"] td:last-child:not(.print-hide) {
+     font-style: normal !important; font-weight: bold !important; text-align: right;
+}
+tr[data-row-type="department"] .col-special-desc,
+tr[data-row-type="subdepartment"] .col-special-desc {
+    text-align: left !important;
+    padding-left: 15px !important;
+}
+tr[data-row-type="subdepartment"] .col-special-desc {
+    padding-left: 30px !important;
+}
+
+/* Wykaz materiałów - zerowe ceny */
+#material-summary-table tr.zero-price td,
+body table tr.zero-price td {
+    background-color: #ffe0e0 !important; color: #c00 !important; font-weight: normal !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+#material-summary-table tr.zero-price td:first-child,
+body table tr.zero-price td:first-child { font-weight: bold !important; }
+
+/* Style dla wydruku analizy */
+.analysis-print-section { page-break-inside: avoid; margin-bottom: 15mm; padding: 0; border: none; background-color: transparent !important; }
+.analysis-print-section:not(:first-child) {
+    page-break-before: always;
+}
+.analysis-print-section h2, .analysis-print-section h3 { margin-top: 0em; text-align: left; border-bottom: 1px solid #ccc; margin-bottom: 0.5em;}
+.analysis-print-section img { max-width: 100%; height: auto; display: block; margin: 10px auto; border: 1px solid #ccc; page-break-inside: avoid; box-shadow: none; }
+.analysis-print-section table { font-size: 8.5pt; box-shadow: none; border-color: #bbb; margin-top: 0.2em;}
+.analysis-print-section th, .analysis-print-section td { padding: 3px 4px; border-color: #ccc; }
+.analysis-print-section th { background-color: #f0f0f0 !important; color: #000; }
+.material-categories-legend {
+    font-size: 8pt;
+    color: #555;
+    margin-top: 8px;
+    page-break-before: avoid;
+    display: block !important; /* Upewnij się, że jest widoczna na wydruku jeśli ma klasę print-only */
+}
+
+
+/* Strona tytułowa i Oferta - stylizacja kontenera */
+.container { width: 100%; max-width: 180mm; margin: 0 auto; padding: 0; color: #000; }
+.container:not(:first-child) {
+    page-break-before: always;
+}
+.container h1 { font-size: 16pt; margin-bottom: 20px; color: #000; border-bottom: 2px solid #000; padding-bottom: 0.5em; text-align: center !important;}
+.container .section h2 { font-size: 12pt; margin-bottom: 10px; color: #000; border-bottom: 1px solid #ccc; }
+.container p { font-size: 10pt; line-height: 1.4; margin-bottom: 7px; }
+.container p strong { color: #000; font-weight: bold;}
+.container .signatures { margin-top: 25mm; }
+.container .signature-box p { margin-top: 15mm; font-size: 9pt; color: #333; }
+.container table { font-size: 9pt; box-shadow: none; border: 1px solid #aaa; margin-top: 0.2em;}
+.container table th { background-color: #e8e8e8 !important; color: #000; }
+.container table td { padding: 4px 5px; border: 1px solid #bbb;}
+
+.page-break-before { page-break-before: always; }
+
+@page { size: A4 portrait; margin: 15mm; }

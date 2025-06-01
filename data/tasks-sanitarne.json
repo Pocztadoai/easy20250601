@@ -1,0 +1,26 @@
+[
+  {
+    "branchCode": "SA",
+    "department": "H. Instalacje Sanitarne i C.O.",
+    "description": "Wykucie bruzd pod rury wod-kan w cegle/tynku",
+    "unit": "mb",
+    "workerCategory": "hydraulik",
+    "norms": { "R": 0.25, "M": [] }
+  },
+  {
+    "branchCode": "SA",
+    "department": "H. Instalacje Sanitarne i C.O.",
+    "description": "Wykonanie podejścia wodnego PP/PEX (Z+C)",
+    "unit": "pkt",
+    "workerCategory": "hydraulik",
+    "norms": { "R": 1.20, "M": [{ "name": "Rura PEX/AL/PEX 16mm", "unit": "mb", "quantity": 2.5 },{ "name": "Kolano PEX", "unit": "szt.", "quantity": 4.0 }] }
+  },
+  {
+    "branchCode": "SA",
+    "department": "H. Instalacje Sanitarne i C.O.",
+    "description": "Montaż stelaża podtynkowego WC",
+    "unit": "szt.",
+    "workerCategory": "hydraulik",
+    "norms": { "R": 1.50, "M": [{ "name": "Stelaż podtynkowy WC kompletny", "unit": "kpl.", "quantity": 1.0 }] }
+  }
+]

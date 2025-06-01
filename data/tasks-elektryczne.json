@@ -1,0 +1,26 @@
+[
+  {
+    "branchCode": "EL",
+    "department": "G. Instalacje Elektryczne",
+    "description": "Wykucie bruzd pod przewody w tynku/cegle",
+    "unit": "mb",
+    "workerCategory": "elektryk",
+    "norms": { "R": 0.18, "M": [] }
+  },
+  {
+    "branchCode": "EL",
+    "department": "G. Instalacje Elektryczne",
+    "description": "Osadzanie puszek instalacyjnych",
+    "unit": "szt.",
+    "workerCategory": "elektryk",
+    "norms": { "R": 0.15, "M": [{ "name": "Puszka instalacyjna", "unit": "szt.", "quantity": 1.0 },{ "name": "Gips szpachlowy", "unit": "kg", "quantity": 0.3 }] }
+  },
+  {
+    "branchCode": "EL",
+    "department": "G. Instalacje Elektryczne",
+    "description": "Układanie przewodów YDYp pod tynkiem",
+    "unit": "mb",
+    "workerCategory": "elektryk",
+    "norms": { "R": 0.10, "M": [{ "name": "Przewód YDYp 3x1,5", "unit": "mb", "quantity": 1.03 }] }
+  }
+]

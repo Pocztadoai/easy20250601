@@ -1,0 +1,46 @@
+[
+  {
+    "branchCode": "OG",
+    "department": "A. Przygotowanie i Rozbiórki",
+    "description": "Zabezpieczenie folią podłóg i stolarki",
+    "unit": "m2",
+    "workerCategory": "ogolnobudowlany",
+    "norms": {
+      "R": 0.04,
+      "M": [
+        { "name": "Folia ochronna gruba", "unit": "m2", "quantity": 1.1 },
+        { "name": "Taśma malarska", "unit": "mb", "quantity": 0.8 }
+      ]
+    }
+  },
+  {
+    "branchCode": "OG",
+    "department": "A. Przygotowanie i Rozbiórki",
+    "description": "Ręczne usuwanie starych powłok malarskich (farby klejowe/wapienne)",
+    "unit": "m2",
+    "workerCategory": "ogolnobudowlany",
+    "norms": { "R": 0.25, "M": [] }
+  },
+  {
+    "branchCode": "OG",
+    "department": "B. Murarskie i Sucha Zabudowa",
+    "description": "Murowanie ścianek działowych z bloczków gazobetonowych (gr. 12 cm)",
+    "unit": "m2",
+    "workerCategory": "ogolnobudowlany",
+    "norms": {
+      "R": 1.10,
+      "M": [
+        { "name": "Bloczek gazobetonowy 12cm", "unit": "m2", "quantity": 1.03 },
+        { "name": "Zaprawa klejowa do gazobetonu", "unit": "kg", "quantity": 4.0 }
+      ]
+    }
+  },
+  {
+    "branchCode": "OG",
+    "department": "C. Tynki i Gładzie",
+    "description": "Gruntowanie podłoży pod tynki / gładzie / kleje",
+    "unit": "m2",
+    "workerCategory": "ogolnobudowlany",
+    "norms": { "R": 0.03, "M": [{ "name": "Preparat gruntujący", "unit": "l", "quantity": 0.15 }] }
+  }
+]

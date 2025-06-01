@@ -1,0 +1,9 @@
+[
+  { "name": "Folia ochronna gruba", "unit": "m2", "price": 1.20, "category": "MN" },
+  { "name": "Taśma malarska", "unit": "mb", "price": 3.50, "category": "MN" },
+  { "name": "Bloczek gazobetonowy 12cm", "unit": "szt", "price": 7.00, "category": "MB" },
+  { "name": "Zaprawa klejowa do gazobetonu", "unit": "kg", "price": 1.80, "category": "MB" },
+  { "name": "Preparat gruntujący", "unit": "l", "price": 12.50, "category": "MW" },
+  { "name": "Farba emulsyjna", "unit": "l", "price": 18.80, "category": "MW" },
+  { "name": "Płyta G-K 12.5mm", "unit": "m2", "price": 14.00, "category": "MB" }
+]

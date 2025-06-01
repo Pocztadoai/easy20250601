@@ -1,0 +1,26 @@
+[
+  {
+    "branchCode": "ZF",
+    "department": "J. Roboty Ziemne i Fundamentowe",
+    "description": "Zdjęcie humusu (warstwy urodzajnej) gr. do 20cm - mechanicznie",
+    "unit": "m2",
+    "workerCategory": "ogolnobudowlany",
+    "norms": { "R": 0.05, "M": [] }
+  },
+  {
+    "branchCode": "ZF",
+    "department": "J. Roboty Ziemne i Fundamentowe",
+    "description": "Wykonanie wykopu liniowego pod ławy fundamentowe (grunt kat. I-II, mech.)",
+    "unit": "m3",
+    "workerCategory": "ogolnobudowlany",
+    "norms": { "R": 0.25, "M": [] }
+  },
+  {
+    "branchCode": "ZF",
+    "department": "J. Roboty Ziemne i Fundamentowe",
+    "description": "Wykonanie podkładu z chudego betonu (chudziak) na dnie wykopu gr. 10 cm",
+    "unit": "m2",
+    "workerCategory": "ogolnobudowlany",
+    "norms": { "R": 0.25, "M": [{ "name": "Beton C8/10 (B10)", "unit": "m3", "quantity": 0.105 }] }
+  }
+]

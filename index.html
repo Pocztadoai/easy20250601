@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EazyKoszt 0.4.2 - Aplikacja Kosztorysowa</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="print-style.css" media="print">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+    <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+</head>
+<body>
+    <div id="sticky-header-tabs" class="print-hide">
+        <div class="sticky-header-row">
+            <h1>EazyKoszt 0.4.2</h1>
+            <div class="button-group main-header-buttons">
+                <select id="global-branch-filter" title="Wybierz aktywną branżę dla dodawania pozycji" class="small-header-control">
+                    <option value="">-- Wybierz Branżę --</option>
+                </select>
+                <button id="save-department-as-template-btn" class="secondary small-action-btn" title="Zapisz kliknięty dział jako szablon" disabled>Zapisz Dział</button>
+                <button id="save-estimate-as-template-btn" class="secondary small-action-btn" title="Zapisz cały kosztorys jako szablon">Zapisz Koszt.</button>
+                <button id="open-templates-modal-btn" class="secondary small-action-btn">Szablony</button>
+                <button id="open-print-selection-btn" class="small-action-btn">Drukuj</button>
+                <button id="save-estimate-btn" class="small-action-btn">Zapisz Jako...</button>
+                <button id="load-estimate-btn" class="secondary small-action-btn">Wczytaj</button>
+                <input type="file" id="load-estimate-file-input" accept=".kosztpol,.eazykoszt" style="display: none;">
+                <button id="undo-btn" class="secondary small-action-btn" title="Cofnij (Ctrl+Z)" disabled>Cofnij</button>
+                <button id="redo-btn" class="secondary small-action-btn" title="Ponów (Ctrl+Y)" disabled>Ponów</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" data-tab="kosztorys">Kosztorys</button>
+            <button class="tab" data-tab="materialy">Wykaz Materiałów</button>
+            <button class="tab" data-tab="katalogi-wlasne">Katalogi Własne</button>
+            <button class="tab" data-tab="analiza">Analiza Oferty</button>
+            <button class="tab" data-tab="ustawienia">Ustawienia</button>
+        </div>
+    </div>
+
+    <div class="tab-contents-wrapper">
+        <div id="kosztorys" class="tab-content active">
+            <h2>Kosztorys Szczegółowy</h2>
+            <table id="cost-table">
+                 <thead>
+                     <tr>
+                        <th class="col-drag print-hide"></th>
+                        <th class="col-lp">L.p.</th>
+                        <th class="col-desc">Pozycja / Normy / Dział / Poddział</th>
+                        <th class="col-unit">j.m.</th>
+                        <th class="col-qty">Obmiar</th>
+                        <th class="col-price-r-unit">Cena jedn. R</th>
+                        <th class="col-price-m-unit">Cena jedn. M</th>
+                        <th class="col-price-total">Cena jedn.</th>
+                        <th class="col-value">Wartość / Suma</th>
+                     </tr>
+                 </thead>
+                 <tbody id="cost-table-body">
+                 </tbody>
+                 <tfoot>
+                     <tr>
+                        <td colspan="8" style="text-align: right; font-weight: bold;">SUMA CAŁKOWITA NETTO:</td>
+                        <td id="grand-total" style="font-weight: bold; text-align: right;">0.00</td>
+                    </tr>
+                 </tfoot>
+            </table>
+        </div>
+
+        <div id="materialy" class="tab-content">
+            <h2>Wykaz Materiałów (z edycją cen)</h2>
+            <table id="material-summary-table">
+               <thead>
+                    <tr>
+                        <th data-sort-key="name">Materiał</th>
+                        <th data-sort-key="category" style="text-align: center;">Kategoria</th>
+                        <th data-sort-key="totalQuantity" style="text-align: right;">Ilość</th>
+                        <th data-sort-key="unit" style="text-align: center;">j.m.</th>
+                        <th class="editable-price-header" data-sort-key="unitPriceY" style="text-align: right;">Cena Rynk. (Y) [Edytuj]</th>
+                        <th class="editable-price-header print-hide-internal" data-sort-key="purchasePriceX" style="text-align: right;">Cena Zakupu (X) [Edytuj]</th>
+                        <th class="print-hide-internal" style="text-align: right;">Zysk/Strata Jedn.</th>
+                        <th class="material-summary-value-header" data-sort-key="value" style="text-align: right;">Wartość (Y) (zł)</th>
+                        <th class="print-hide-internal" data-sort-key="profitValue" style="text-align: right;">Zysk/Strata Sum. (zł)</th>
+                    </tr>
+                </thead>
+               <tbody id="material-summary-body"></tbody>
+               <tfoot>
+                   <tr>
+                       <td colspan="7" style="text-align: right; font-weight: bold;">SUMA WARTOŚCI MATERIAŁÓW (wg cen rynkowych Y):</td>
+                       <td id="material-grand-total" style="font-weight: bold; text-align: right;">0.00</td>
+                       <td class="print-hide-internal"></td>
+                   </tr>
+                   <tr class="print-hide-internal">
+                       <td colspan="8" style="text-align: right; font-weight: bold;">SUMA ZYSKU Z ZAKUPU MATERIAŁÓW:</td>
+                       <td id="material-profit-grand-total" style="font-weight: bold; text-align: right;">0.00</td>
+                   </tr>
+               </tfoot>
+           </table>
+        </div>
+
+        <div id="katalogi-wlasne" class="tab-content">
+             <h2>Zarządzanie Katalogami Własnymi</h2>
+             <p style="margin-bottom: 20px;">Przeglądaj, dodawaj i edytuj własne pozycje kosztorysowe oraz materiały.</p>
+             <div class="catalogs-management-ui">
+                 <div class="catalog-section">
+                     <h3>Katalog Własnych Pozycji Kosztorysowych</h3>
+                     <div class="catalog-controls form-grid" style="grid-template-columns: 1fr auto; align-items: end; margin-bottom:15px;">
+                         <div class="form-group">
+                            <label for="tasks-catalog-search">Wyszukaj Własną Pozycję:</label>
+                            <input type="text" id="tasks-catalog-search" placeholder="Opis, dział...">
+                         </div>
+                         <button id="add-new-task-to-catalog-btn" class="small-action-btn" style="height: fit-content;">Dodaj Nową Pozycję Własną</button>
+                     </div>
+                     <div id="tasks-catalog-list-container" class="catalog-list-container">
+                         <p>Ładowanie katalogu własnych pozycji...</p>
+                     </div>
+                 </div>
+                 <hr class="settings-divider">
+                 <div class="catalog-section">
+                     <h3>Katalog Własnych Materiałów</h3>
+                      <div class="catalog-controls form-grid" style="grid-template-columns: 1fr auto; align-items: end; margin-bottom:15px;">
+                         <div class="form-group">
+                            <label for="materials-catalog-search">Wyszukaj Własny Materiał:</label>
+                            <input type="text" id="materials-catalog-search" placeholder="Nazwa materiału...">
+                         </div>
+                         <button id="add-new-material-to-catalog-btn" class="small-action-btn" style="height: fit-content;">Dodaj Nowy Materiał Własny</button>
+                     </div>
+                     <div id="materials-catalog-list-container" class="catalog-list-container">
+                         <p>Ładowanie katalogu własnych materiałów...</p>
+                     </div>
+                 </div>
+             </div>
+        </div>
+
+        <div id="analiza" class="tab-content">
+            <h2>Analiza Oferty</h2>
+            <div class="analysis-section">
+                <h3>Podział Kosztów wg Działów (Netto)</h3>
+                <div id="analysis-chart-departments-container">
+                    <div id="analysis-chart-departments" class="charts-flex-container">
+                    </div>
+                </div>
+            </div>
+            <hr class="settings-divider">
+            <div class="analysis-section" id="analysis-labor-costs">
+            </div>
+            <hr class="settings-divider">
+            <div class="analysis-section">
+                <h3>Szczegółowy Podział Kosztów Materiałów (Netto)</h3>
+                <div class="form-group" style="max-width: 300px; margin-bottom:15px;">
+                    <label for="material-analysis-view-select">Widok materiałów:</label>
+                    <select id="material-analysis-view-select">
+                        <option value="by_department">Wg Działów</option>
+                        <option value="by_category">Wg Kategorii Materiałowych</option>
+                    </select>
+                </div>
+                <div id="analysis-detailed-material-costs">
+                </div>
+            </div>
+             <hr class="settings-divider">
+             <div class="analysis-section" id="material-profit-details">
+            </div>
+            <hr class="settings-divider">
+            <div class="analysis-section">
+                <h3>Harmonogram Robót</h3>
+                <button id="generate-schedule-btn">Generuj Harmonogram (w nowym oknie)</button>
+                <div id="analysis-schedule-output" style="margin-top:15px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="ustawienia" class="tab-content">
+            <h2>Ustawienia Aplikacji</h2>
+            <div class="settings-main-sections">
+                <div id="general-settings-section" class="settings-section">
+                    <h3>Dane Ogólne Kosztorysu</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="edit-estimate-details-btn-placeholder">Edytuj dane ogólne:</label>
+                            <button id="edit-estimate-details-btn" class="secondary">Edytuj Dane Ogólne</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-vat-rate-display">Domyślna stawka VAT:</label>
+                            <input type="text" id="modal-vat-rate-display" value="23%" disabled style="background-color: #eee; width: 80px;">
+                            <small>Stawkę VAT można zmienić w oknie "Edytuj Dane Ogólne".</small>
+                        </div>
+                    </div>
+                </div>
+                <hr class="settings-divider">
+                <div id="labor-rates-settings-section" class="settings-section">
+                    <h3>Stawki Robocizny Netto (zł/rg)</h3>
+                    <div class="form-group">
+                        <label for="rate-labor-ogolnobudowlany">Pracownik Ogólnobudowlany:</label>
+                        <input type="number" id="rate-labor-ogolnobudowlany" class="worker-rate-input" data-worker-category="ogolnobudowlany" min="0" step="0.01" value="0.00" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" id="use-same-rate-for-all" checked>
+                        <label for="use-same-rate-for-all" style="display:inline-block;">Użyj tej samej stawki dla wszystkich specjalistów</label>
+                    </div>
+                    <div id="specialist-rates-container" class="specialist-rates-compact form-grid" style="display: none; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+                    </div>
+                </div>
+                <hr class="settings-divider">
+                <div id="material-csv-settings-section" class="settings-section">
+                    <h3>Import Cen Materiałów z CSV/TXT</h3>
+                    <div class="load-csv-section">
+                        <p>Format pliku: Nazwa materiału,Cena (lub ; lub TAB). Nazwy materiałów muszą dokładnie odpowiadać tym w bazie.</p>
+                        <div class="csv-controls">
+                            <input type="file" id="csv-file-input" accept=".csv,.txt">
+                            <button id="load-csv-button" disabled>Załaduj Ceny z Pliku</button>
+                        </div>
+                    </div>
+                </div>
+                <hr class="settings-divider">
+                 <div id="auto-save-settings-section" class="settings-section">
+                    <h3>Autozapis</h3>
+                    <div class="form-group">
+                        <input type="checkbox" id="auto-save-enabled-checkbox">
+                        <label for="auto-save-enabled-checkbox" style="display:inline-block;">Włącz automatyczny zapis wersji</label>
+                    </div>
+                    <div class="form-group" id="auto-save-interval-group">
+                        <label for="auto-save-interval-select">Częstotliwość autozapisu:</label>
+                        <select id="auto-save-interval-select">
+                            <option value="2">Co 2 minuty</option>
+                            <option value="5">Co 5 minut</option>
+                            <option value="10">Co 10 minut</option>
+                        </select>
+                    </div>
+                </div>
+                <hr class="settings-divider">
+                <div id="estimate-versions-section" class="settings-section">
+                    <h3>Wersje Kosztorysu</h3>
+                    <p>Zapisuj i wczytuj różne wersje swojego kosztorysu.</p>
+                    <div id="estimate-versions-list-container" style="margin-top:10px;">
+                        <select id="estimate-versions-select" size="5">
+                            <option value="" disabled>Brak zapisanych wersji.</option>
+                        </select>
+                        <div class="button-group" style="margin-top:10px;">
+                            <button id="load-selected-version-btn" class="small-action-btn" disabled>Wczytaj Wybraną Wersję</button>
+                            <button id="delete-selected-version-btn" class="danger small-action-btn" disabled>Usuń Wybraną Wersję</button>
+                        </div>
+                    </div>
+                </div>
+                <hr class="settings-divider">
+                <div id="style-configurator-section" class="settings-section">
+                    <h3>Konfigurator Wyglądu Wydruków i Ekranu</h3>
+                    <button id="toggle-style-configurator-btn" class="secondary small-action-btn">Pokaż Konfigurator Wyglądu</button>
+                    <div id="konfigurator-stylu-content" style="display: none; border: 1px solid var(--medium-gray); padding: 15px; margin-top: 10px; border-radius: var(--border-radius);">
+                         <div class="style-config-grid">
+                            <div class="config-section">
+                                <legend>Style Ekranowe</legend>
+                                <div class="form-group"><label for="style-primary-color">Kolor Podstawowy (Nagłówki, Akcenty):<input type="color" id="style-primary-color" data-css-var="--primary-color"></label></div>
+                                <div class="form-group"><label for="style-secondary-color">Kolor Dodatkowy (Przyciski, Akcenty):<input type="color" id="style-secondary-color" data-css-var="--secondary-color"></label></div>
+                                <div class="form-group"><label for="style-text-color">Kolor Tekstu Głównego:<input type="color" id="style-text-color" data-css-var="--text-color"></label></div>
+                                <div class="form-group"><label for="style-light-gray">Kolor Tła Jasnoszary:<input type="color" id="style-light-gray" data-css-var="--light-gray"></label></div>
+                                <div class="form-group"><label for="style-table-header-bg">Tło Nagłówka Tabeli:<input type="color" id="style-table-header-bg" data-css-var="--table-header-bg"></label></div>
+                                <div class="form-group"><label for="style-table-header-text-color">Kolor Tekstu Nagłówka Tabeli:<input type="color" id="style-table-header-text-color" data-css-var="--table-header-text-color"></label></div>
+                                <div class="form-group"><label for="style-table-row-hover-bg">Tło Wiersza Tabeli (Hover):<input type="color" id="style-table-row-hover-bg" data-css-var="--table-row-hover-bg"></label></div>
+                                <div class="form-group"><label for="style-task-row-default-bg">Domyślne tło wiersza Pozycji:<input type="color" id="style-task-row-default-bg" data-css-var="--task-row-default-bg"></label></div>
+                                <div class="form-group"><label for="style-body-font-size">Rozmiar czcionki (px):<input type="number" id="style-body-font-size" data-css-target="body" data-css-property="fontSize" data-css-unit="px" min="10" max="20" step="1"></label></div>
+                            </div>
+                            <div class="config-section">
+                                <legend>Style Wydruku</legend>
+                                 <div class="form-group"><label for="print-style-font-family">Czcionka (Wydruk):<select id="print-style-font-family" data-print-selector="body" data-print-property="font-family"><option value="Arial, sans-serif">Arial</option><option value="Verdana, sans-serif">Verdana</option><option value="Tahoma, sans-serif">Tahoma</option><option value="'Times New Roman', Times, serif">Times New Roman</option></select></label></div>
+                                <div class="form-group"><label for="print-style-font-size">Rozmiar czcionki (Wydruk) [pt]:<input type="number" id="print-style-font-size" data-print-selector="body" data-print-property="font-size" data-print-unit="pt" min="8" max="14" step="1"></label></div>
+                                <div class="form-group"><label for="print-style-line-height">Interlinia (Wydruk):<input type="number" id="print-style-line-height" data-print-selector="body" data-print-property="line-height" min="1" max="2" step="0.1"></label></div>
+                                <div class="form-group"><label for="print-style-text-color">Kolor Tekstu (Wydruk):<input type="color" id="print-style-text-color" data-print-selector="body, .container p" data-print-property="color"></label></div>
+                                <div class="form-group"><label for="print-style-h1-color">Kolor Nagłówka H1 (Wydruk):<input type="color" id="print-style-h1-color" data-print-selector="h1, .container h1" data-print-property="color"></label></div>
+                                <div class="form-group"><label for="print-style-h1-font-size">Rozmiar H1 (Wydruk) [pt]:<input type="number" id="print-style-h1-font-size" data-print-selector="h1, .container h1" data-print-property="font-size" data-print-unit="pt" min="12" max="24" step="1"></label></div>
+                                 <div class="form-group"><label for="print-style-h-border-color">Kolor Linii pod Nagłówkami (Wydruk):<input type="color" id="print-style-h-border-color" data-print-selector="h1, h2, h3, .container h2" data-print-property="border-bottom-color"></label></div>
+                                <div class="form-group"><label for="print-style-table-header-bg">Tło Nagłówka Tabeli (Wydruk):<input type="color" id="print-style-table-header-bg" data-print-selector="th, .container table th" data-print-property="background-color"></label></div>
+                                <div class="form-group"><label for="print-style-table-header-text-color">Tekst Nagłówka Tabeli (Wydruk):<input type="color" id="print-style-table-header-text-color" data-print-selector="th, .container table th" data-print-property="color"></label></div>
+                                <div class="form-group"><label for="print-style-table-border-color">Kolor Obramowania Tabeli (Wydruk):<input type="color" id="print-style-table-border-color" data-print-selector="table, th, td, .container table, .container table th, .container table td" data-print-property="border-color"></label></div>
+                                <div class="form-group"><label for="print-style-table-font-size">Rozmiar czcionki w Tabeli (Wydruk) [pt]:<input type="number" id="print-style-table-font-size" data-print-selector="table, .container table" data-print-property="font-size" data-print-unit="pt" min="7" max="12" step="0.5"></label></div>
+                            </div>
+                        </div>
+                        <div class="modal-actions" style="margin-top: 20px;">
+                            <button id="style-config-apply-btn">Zastosuj i Zapisz Style</button>
+                            <button id="style-config-reset-btn" class="secondary">Przywróć Domyślne</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="fixed-action-buttons" class="button-group print-hide">
+         <button id="add-row-btn">Dodaj Pozycję</button>
+         <button id="add-department-btn" class="secondary">Dodaj Dział</button>
+         <button id="add-subdepartment-btn" class="secondary">Dodaj Poddział</button>
+         <button id="save-estimate-version-btn" class="secondary">Zapisz Wersję</button>
+         <button id="preview-estimate-detail-btn" class="secondary">Podgląd Kosztorysu</button>
+         <button id="clear-all-btn" class="danger">Wyczyść Kosztorys</button>
+         <button id="scroll-to-top-btn" title="Przewiń do góry" class="secondary">↑</button>
+    </div>
+
+    <!-- MODALE -->
+    <div id="custom-task-modal" class="modal print-hide">
+        <div class="modal-content">
+            <span class="close-modal-btn" data-modal-id="custom-task-modal">&times;</span>
+            <h2>Zdefiniuj/Edytuj Pozycję</h2>
+            <div class="form-grid">
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="custom-task-desc">Opis pozycji:</label>
+                    <input type="text" id="custom-task-desc" placeholder="np. Wykonanie tynków gipsowych...">
+                </div>
+                <div class="form-group">
+                    <label for="custom-task-unit">Jednostka miary:</label>
+                    <input type="text" id="custom-task-unit" list="commonUnitsData" placeholder="np. m2, szt.">
+                </div>
+                 <div class="form-group">
+                    <label for="modal-task-branch-select">Branża (dla katalogu):</label>
+                    <select id="modal-task-branch-select">
+                        <option value="">-- Wybierz Branżę --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modal-task-department-input">Dział (dla katalogu):</label>
+                    <input type="text" id="modal-task-department-input" placeholder="np. Tynki, Roboty ziemne">
+                </div>
+                <div class="form-group">
+                    <label for="custom-task-worker-category">Kategoria pracownika (R):</label>
+                    <select id="custom-task-worker-category"></select>
+                </div>
+                <div class="form-group">
+                    <label for="custom-task-norm-r">Norma robocizny (R) [rg/j.m.]:</label>
+                    <input type="number" id="custom-task-norm-r" min="0" step="0.001" placeholder="0.000">
+                </div>
+            </div>
+
+            <div id="modal-materials-section">
+                <h4>Normy materiałowe (M)</h4>
+                <div id="custom-task-materials-list">
+                </div>
+                <button id="add-material-norm-btn" class="secondary small-action-btn">Dodaj Materiał do Normy</button>
+            </div>
+
+            <div class="modal-actions">
+                <button id="save-custom-task-btn">Zapisz</button>
+                <button id="cancel-custom-task-btn" class="secondary">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <datalist id="commonUnitsData">
+    </datalist>
+
+    <div id="material-select-modal" class="modal print-hide" style="z-index: 9500;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal-btn" data-modal-id="material-select-modal">&times;</span>
+            <h2>Wybierz lub Dodaj Materiał</h2>
+            <div class="form-group">
+                <label for="material-search-input">Wyszukaj materiał:</label>
+                <input type="text" id="material-search-input" placeholder="Nazwa materiału...">
+            </div>
+            <ul id="material-select-list">
+            </ul>
+            <p id="material-select-no-results" style="display:none; text-align:center; margin:10px 0;">Brak pasujących materiałów.</p>
+            <hr>
+            <h4>Lub Dodaj Nowy Materiał do Katalogu</h4>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="new-material-name-input">Nazwa nowego materiału:</label>
+                    <input type="text" id="new-material-name-input">
+                </div>
+                <div class="form-group">
+                    <label for="new-material-unit-input">Jednostka:</label>
+                    <input type="text" id="new-material-unit-input" list="commonUnitsData">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="new-material-category-input">Kategoria materiału:</label>
+                    <select id="new-material-category-input">
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="add-new-material-btn">Dodaj Nowy Materiał i Wybierz</button>
+                <button id="cancel-material-select-btn" class="secondary">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="print-selection-modal" class="modal print-hide">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal-btn" data-modal-id="print-selection-modal">&times;</span>
+            <h2>Wybierz Dokumenty do Wydruku</h2>
+            <div id="print-options-container">
+                <label><input type="checkbox" name="printSelection" value="coverPage"> Strona Tytułowa</label><br>
+                <label><input type="checkbox" name="printSelection" value="estimateDetail"> Kosztorys Szczegółowy (z normami)</label><br>
+                <label><input type="checkbox" name="printSelection" value="estimatePositions"> Zestawienie Pozycji Kosztorysowych</label><br>
+                <label><input type="checkbox" name="printSelection" value="offer"> Oferta Kosztorysowa</label><br>
+                <label><input type="checkbox" name="printSelection" value="materialList"> Wykaz Materiałów</label><br>
+                <hr>
+                <label><input type="checkbox" name="printSelection" value="analysisDeptCharts"> Analiza: Wykresy Podziału Kosztów wg Działów</label><br>
+                <label><input type="checkbox" name="printSelection" value="analysisWorkerDistChart"> Analiza: Wykres Udziału Robocizny wg Pracowników</label><br>
+                <label><input type="checkbox" name="printSelection" value="analysisLaborTable"> Analiza: Tabela Robocizny wg Działów</label><br>
+                <label><input type="checkbox" name="printSelection" value="analysisMaterialByCat"> Analiza: Tabela Materiałów wg Kategorii</label><br>
+                <label><input type="checkbox" name="printSelection" value="analysisMaterialByDept"> Analiza: Tabela Materiałów wg Działów</label><br>
+                <label><input type="checkbox" name="printSelection" value="analysisMaterialProfit"> Analiza: Raport Zysku z Materiałów</label><br>
+                <label><input type="checkbox" name="printSelection" value="schedule"> Harmonogram Robót (otworzy się w nowym oknie)</label><br>
+                <hr>
+                <label><input type="checkbox" id="print-notes-detail"> Dołącz notatki do Kosztorysu Szczegółowego</label><br>
+
+            </div>
+            <div class="modal-actions">
+                <button id="generate-selected-prints-btn">Generuj Zaznaczone</button>
+                <button id="cancel-print-selection-btn" class="secondary">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-estimate-details-modal" class="modal print-hide">
+        <div class="modal-content">
+            <span class="close-modal-btn" data-modal-id="edit-estimate-details-modal">&times;</span>
+            <h2>Edytuj Dane Ogólne Kosztorysu</h2>
+            <div class="form-group">
+                <label for="modal-estimate-title">Tytuł kosztorysu:</label>
+                <input type="text" id="modal-estimate-title">
+            </div>
+            <div class="form-group">
+                <label for="modal-investment-location">Lokalizacja inwestycji:</label>
+                <input type="text" id="modal-investment-location">
+            </div>
+            <div class="form-group">
+                <label for="modal-investor-info">Inwestor:</label>
+                <input type="text" id="modal-investor-info">
+            </div>
+            <div class="form-group">
+                <label for="modal-contractor-info">Wykonawca:</label>
+                <input type="text" id="modal-contractor-info">
+            </div>
+            <div class="form-group">
+                <label for="modal-vat-rate">Stawka VAT:</label>
+                <select id="modal-vat-rate">
+                    <option value="23">23%</option>
+                    <option value="8">8%</option>
+                    <option value="5">5%</option>
+                    <option value="0">0%</option>
+                    <option value="zw">ZW (zwolnione)</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="save-estimate-details-modal-btn">Zapisz Dane</button>
+                <button id="cancel-estimate-details-modal-btn" class="secondary">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="templates-modal" class="modal print-hide">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal-btn" id="close-templates-modal-btn" data-modal-id="templates-modal">&times;</span>
+            <h2>Zarządzanie Szablonami</h2>
+            <div class="form-group">
+                <label for="template-select">Wybierz szablon:</label>
+                <select id="template-select" size="10">
+                    <option value="" disabled>Brak zapisanych szablonów.</option>
+                </select>
+            </div>
+            <div class="modal-actions button-group">
+                <button id="insert-template-btn" disabled>Wstaw Szablon</button>
+                <button id="delete-template-btn" class="danger" disabled>Usuń Szablon</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notes-modal" class="modal print-hide">
+        <div class="modal-content">
+            <span class="close-modal-btn" data-modal-id="notes-modal">&times;</span>
+            <h2>Notatka dla: <span id="notes-modal-item-desc" style="font-weight:normal; font-style:italic;"></span></h2>
+            <textarea id="notes-modal-textarea" rows="10" placeholder="Wpisz swoje notatki..."></textarea>
+            <div class="modal-actions">
+                <button id="save-notes-modal-btn">Zapisz Notatkę</button>
+                <button id="cancel-notes-modal-btn" class="secondary">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-notification-modal" class="modal print-hide" style="z-index: 10500;">
+        <div class="modal-content" style="max-width: 450px;">
+            <span class="close-modal-btn" data-modal-id="confirm-notification-modal">&times;</span>
+            <h3 id="confirm-notification-title" style="margin-top:0; margin-bottom:15px; font-size: 1.2em;">Potwierdzenie</h3>
+            <p id="confirm-notification-message" style="margin-bottom: 25px; line-height: 1.5;"></p>
+            <div class="modal-actions">
+                <button id="confirm-notification-ok-btn">OK</button>
+                <button id="confirm-notification-cancel-btn" class="secondary">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="suggestions-overlay" class="suggestions-dropdown-overlay print-hide"></div>
+
+
+    <div id="custom-context-menu" class="custom-context-menu print-hide">
+        <ul>
+            <li data-action="edit">Edytuj Pozycję/Dział</li>
+            <li data-action="edit-notes">Dodaj/Edytuj Notatkę</li>
+            <li data-action="delete">Usuń Wiersz</li>
+            <hr>
+            <li data-action="save-version">Zapisz Wersję Kosztorysu</li>
+            <li data-action="save-estimate">Zapisz Kosztorys do Pliku</li>
+            <li data-action="print">Drukuj...</li>
+            <hr>
+            <li data-action="go-to-settings">Ustawienia</li>
+        </ul>
+    </div>
+
+    <div id="notifications-container" class="notifications-container print-hide"></div>
+
+    <script src="js/database-schema.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/catalog-importer.js"></script>
+
+    <script src="js/script-core.js"></script>
+    <script src="js/script-estimate.js"></script>
+    <script src="js/script-modals-io.js"></script>
+
+    <script src="js/analysis.js"></script>
+    <script src="js/style-configurator.js"></script>
+</body>
+</html>

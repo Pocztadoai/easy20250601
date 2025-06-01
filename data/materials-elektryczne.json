@@ -1,0 +1,7 @@
+[
+  { "name": "Puszka instalacyjna", "unit": "szt.", "price": 1.50, "category": "MI" },
+  { "name": "Gips szpachlowy", "unit": "kg", "price": 2.20, "category": "MB" },
+  { "name": "Przewód YDYp 3x1,5", "unit": "mb", "price": 2.80, "category": "MI" },
+  { "name": "Przewód YDYp 3x2,5", "unit": "mb", "price": 3.90, "category": "MI" },
+  { "name": "Gniazdo elektryczne pojedyncze", "unit": "szt.", "price": 12.00, "category": "MI" }
+]

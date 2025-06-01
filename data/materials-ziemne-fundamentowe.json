@@ -1,0 +1,7 @@
+[
+  { "name": "Piasek zasypowy", "unit": "m3", "price": 50.00, "category": "MB" },
+  { "name": "Beton C8/10 (B10)", "unit": "m3", "price": 300.00, "category": "MB" },
+  { "name": "Beton C20/25 (B25)", "unit": "m3", "price": 380.00, "category": "MB" },
+  { "name": "Stal zbrojeniowa (pręty)", "unit": "kg", "price": 4.50, "category": "MB" },
+  { "name": "Folia kubełkowa", "unit": "m2", "price": 8.00, "category": "MB" }
+]
