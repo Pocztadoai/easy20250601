@@ -1150,6 +1150,7 @@ const handleContextMenuAction = async (event) => {
         case 'print': if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal(); break;
     }
 };
+
 // ==========================================================================
 // SEKCIA 10: GŁÓWNA INICJALIZACJA APLIKACJI (initApp)
 // ==========================================================================
