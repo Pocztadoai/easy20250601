@@ -1343,9 +1343,11 @@ const handleContextMenuAction = async (event) => {
 // ==========================================================================
 async function initApp() {
     console.log(`%cInicjalizacja ${APP_VERSION}...`, "color: blue; font-weight: bold;");
-    // departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel
+    console.log("DEBUG: initApp - Start."); // <-- DODANO
 
     try { // <-- TUTAJ ZACZYNA SIĘ BLOK TRY DLA CAŁEJ FUNKCJI
+        console.log("DEBUG: initApp - Wewnątrz bloku try."); // <-- DODANO
+
         costTableBody = document.getElementById('cost-table-body'); if (!costTableBody) throw new Error("Krytyczny błąd: Element 'cost-table-body' nie został znaleziony w DOM.");
         grandTotalElement = document.getElementById('grand-total'); if (!grandTotalElement) throw new Error("Krytyczny błąd: Element 'grand-total' nie został znaleziony w DOM.");
         notificationsContainer = document.getElementById('notifications-container'); if (!notificationsContainer) console.warn("Element 'notifications-container' nie znaleziony. Powiadomienia będą używać alert().");
@@ -1368,7 +1370,10 @@ async function initApp() {
         }
         console.log("Wszystkie elementy DOM przypisane.");
 
+        console.log("DEBUG: initApp - Przed fillBranchSelectors."); // <-- DODANO
         const fillBranchSelectors = () => { const selectors = [branchSelectDropdown, document.getElementById('modal-task-branch-select')]; if (typeof BRANCHES === 'undefined') { console.error("Zmienna BRANCHES nie jest zdefiniowana!"); return; } selectors.forEach(selector => { if (selector) { const firstOptionValue = selector.options[0]?.value; const firstOptionText = selector.options[0]?.textContent; selector.innerHTML = ''; if (firstOptionValue === "" && firstOptionText) { const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = firstOptionText; selector.appendChild(defaultOpt); } for (const branchKey in BRANCHES) { const option = document.createElement('option'); option.value = BRANCHES[branchKey].code; option.textContent = BRANCHES[branchKey].name; selector.appendChild(option); } } }); }; fillBranchSelectors();
+        console.log("DEBUG: initApp - Po fillBranchSelectors."); // <-- DODANO
+
         if (modalWorkerCategorySelect) {
             modalWorkerCategorySelect.innerHTML = '';
             const currentWorkerRates = appState.getState('workerRatesSettings');
