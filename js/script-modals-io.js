@@ -540,17 +540,24 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
         let newOrUpdatedCatalogTaskId;
 
         if (existingWithSameDesc) {
-            let confirmedOverwrite = false;
-            await new Promise(resolveConfirm => {
-                const confirmMessage = existingWithSameDesc.isPredefined
-                    ? `Pozycja katalogowa "${newDesc}" jest predefiniowana. Czy na pewno chcesz ją NADPISAĆ własnymi danymi? Zmiany będą widoczne we wszystkich miejscach jej użycia.`
-                    : `Pozycja katalogowa "${newDesc}" (Twoja własna) już istnieje w tej branży i dziale. Nadpisać ją nowymi danymi?`;
+            let confirmedAction = false; // Musi być zadeklarowane tutaj, aby było dostępne w resolve
+            await new Promise(resolve => {
                 showConfirmNotification(confirmMessage,
-                    () => { confirmedOverwrite = true; resolveConfirm(true); },
-                    () => { resolveConfirm(false); }
+                    // Pierwszy callback (dla OK)
+                    async () => { // Zmieniono: dodano 'async' bo resolve() to Promise
+                        saveToCatalogInstead = true;
+                        confirmedAction = true;
+                        resolve();
+                    },
+                    // Drugi callback (dla Anuluj)
+                    async () => { // Zmieniono: dodano 'async' bo resolve() to Promise
+                        saveToCatalogInstead = false;
+                        confirmedAction = true;
+                        resolve();
+                    }
                 );
             });
-            if (!confirmedOverwrite) return false;
+            if (!confirmedAction && !saveToCatalogInstead) return false;
 
             catalogTaskData.id = existingWithSameDesc.id;
             catalogTaskData.createdAt = existingWithSameDesc.createdAt || new Date().toISOString();
