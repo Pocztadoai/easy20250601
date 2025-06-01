@@ -975,43 +975,8 @@ async function processCsvFile() { if (!selectedCsvFile) { showNotification("Wybi
 // ==========================================================================
 // SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
 // ==========================================================================
-// UWAGA: Deklaracja showCustomContextMenu TYLKO RAZ!
-
-
-    const targetRow = event.target.closest('tr');
-    contextMenuTargetRow = (targetRow && costTableBody && costTableBody.contains(targetRow) && targetRow.id !== INDICATOR_ROW_ID) ? targetRow : null;
-    const isRowSelected = !!contextMenuTargetRow;
-
-    customContextMenu.querySelector('[data-action="edit"]').classList.toggle('disabled', !isRowSelected);
-    customContextMenu.querySelector('[data-action="edit-notes"]').classList.toggle('disabled', !isRowSelected);
-    customContextMenu.querySelector('[data-action="delete"]').classList.toggle('disabled', !isRowSelected);
-
-    customContextMenu.style.top = `-9999px`;
-    customContextMenu.style.left = `-9999px`;
-    customContextMenu.style.display = 'block';
-
-    const menuWidth = customContextMenu.offsetWidth;
-    const menuHeight = customContextMenu.offsetHeight;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    let topPosition = event.clientY;
-    let leftPosition = event.clientX;
-
-    if (topPosition + menuHeight > windowHeight) {
-        topPosition = windowHeight - menuHeight - 5;
-        if (topPosition < 0) topPosition = 5;
-    }
-    if (leftPosition + menuWidth > windowWidth) {
-        leftPosition = windowWidth - menuWidth - 5;
-        if (leftPosition < 0) leftPosition = 5;
-    }
-    if (topPosition < 0) topPosition = 5;
-    if (leftPosition < 0) leftPosition = 5;
-
-    customContextMenu.style.top = `${topPosition}px`;
-    customContextMenu.style.left = `${leftPosition}px`;
-};
+/// UWAGA: NIE deklaruj tutaj showCustomContextMenu!
+// Deklaracja tej funkcji powinna być tylko w jednym pliku (np. script-core.js).
 
 const hideCustomContextMenu = () => {
     if (customContextMenu) customContextMenu.style.display = 'none';
@@ -1035,117 +1000,31 @@ const handleContextMenuAction = async (event) => {
             }
             break;
         case 'edit-notes':
-            // Zmieniono: openNotesModal przyjmuje ID wiersza, a nie DOM element
             if (targetDomRow && typeof openNotesModal === 'function') openNotesModal(targetDomRow.dataset.rowId);
             break;
         case 'delete':
-            // Użyj targetDomRow do znalezienia odpowiedniego obiektu w modelu
             if (!targetDomRow || !costTableBody || !costTableBody.contains(targetDomRow)) {
                 console.warn("handleContextMenuAction: Brak docelowego wiersza do usunięcia.");
                 return;
             }
-            const targetRowId = targetDomRow.dataset.rowId;
-            const targetRowType = targetDomRow.dataset.rowType;
-
-            let confirmText = "Czy na pewno chcesz usunąć ten wiersz?";
-            if (targetRowType === 'department') confirmText = "Czy na pewno chcesz usunąć ten DZIAŁ i wszystkie jego poddziały oraz pozycje?";
-            else if (targetRowType === 'subdepartment') confirmText = "Czy na pewno chcesz usunąć ten PODDZIAŁ i wszystkie jego pozycje?";
-
-            showConfirmNotification(confirmText, async () => {
-                // Zapisz stan przed usunięciem (dla undo)
-                if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
-
-                // Znajdź indeks wiersza w modelu
-                const rowIndexToDelete = currentEstimateModel.rows.findIndex(r => r.rowId === targetRowId);
-                if (rowIndexToDelete === -1) {
-                    console.error("handleContextMenuAction: Nie znaleziono wiersza w modelu do usunięcia.");
-                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", 'error');
-                    return;
-                }
-
-                let updatedRows = [...currentEstimateModel.rows];
-                let deletedRowIds = [targetRowId]; // Śledź usunięte ID
-
-                if (targetRowType === 'department') {
-                    // Usuń dział i wszystkie jego dzieci z modelu
-                    const newRowsAfterDeletion = [];
-                    let inDeletionBlock = false;
-                    for (let i = 0; i < updatedRows.length; i++) {
-                        const row = updatedRows[i];
-                        if (row.rowId === targetRowId) {
-                            inDeletionBlock = true; // Rozpocznij blok usuwania
-                            // Ten wiersz zostanie pominięty
-                        } else if (inDeletionBlock && row.rowType === 'department') {
-                            inDeletionBlock = false; // Zakończ blok usuwania, jeśli natrafisz na nowy dział
-                            newRowsAfterDeletion.push(row);
-                        } else if (inDeletionBlock) {
-                            // Ten wiersz zostanie pominięty
-                            deletedRowIds.push(row.rowId);
-                        } else {
-                            newRowsAfterDeletion.push(row); // Dodaj wiersz do nowej listy
-                        }
-                    }
-                    updatedRows = newRowsAfterDeletion;
-
-                } else if (targetRowType === 'subdepartment') {
-                    // Usuń poddział i wszystkie jego zadania (do następnego poddziału/działu) z modelu
-                    const newRowsAfterDeletion = [];
-                    let inDeletionBlock = false;
-                    for (let i = 0; i < updatedRows.length; i++) {
-                        const row = updatedRows[i];
-                        if (row.rowId === targetRowId) {
-                            inDeletionBlock = true;
-                        } else if (inDeletionBlock && (row.rowType === 'subdepartment' || row.rowType === 'department')) {
-                            inDeletionBlock = false;
-                            newRowsAfterDeletion.push(row);
-                        } else if (inDeletionBlock) {
-                            deletedRowIds.push(row.rowId);
-                        } else {
-                            newRowsAfterDeletion.push(row);
-                        }
-                    }
-                    updatedRows = newRowsAfterDeletion;
-                } else { // Typ 'task'
-                    updatedRows.splice(rowIndexToDelete, 1); // Usuń tylko ten wiersz
-                }
-
-                // Usuń kolory z modelu dla usuniętych wierszy
-                const updatedDepartmentColors = { ...currentEstimateModel.departmentColors };
-                deletedRowIds.forEach(id => {
-                    if (updatedDepartmentColors[id]) {
-                        delete updatedDepartmentColors[id];
-                    }
-                });
-
-                // Zaktualizuj model i wyrenderuj tabelę
-                await updateModelAndRender({
-                    rows: updatedRows,
-                    departmentColors: updatedDepartmentColors
-                });
-
-                // Zaktualizuj lastClickedRow po usunięciu
-                if (lastClickedRow === targetDomRow) {
-                    // Próba ustawienia lastClickedRow na poprzedni lub następny wiersz DOM
-                    let newLastClickedRow = targetDomRow.previousElementSibling || targetDomRow.nextElementSibling;
-                    // Jeśli nowy lastClickedRow jest wskaźnikiem insertIndicator, przesuń dalej
-                    const indicatorId = typeof INDICATOR_ROW_ID !== 'undefined' ? INDICATOR_ROW_ID : 'temp-insert-indicator';
-                    if (newLastClickedRow && newLastClickedRow.id === indicatorId) {
-                        newLastClickedRow = newLastClickedRow.previousElementSibling || newLastClickedRow.nextElementSibling;
-                    }
-                    if (lastClickedRow) lastClickedRow.classList.remove('last-clicked-row-highlight'); // Usuń podświetlenie z starego
-                    lastClickedRow = newLastClickedRow;
-                    if (lastClickedRow) lastClickedRow.classList.add('last-clicked-row-highlight');
-                }
-                // lastClickedRow i saveDepartmentTemplateBtn są obsługiwane przez renderCostTable
-                // i event listener 'click' na wierszach
-
-                showNotification("Wiersz(e) usunięte.", "success");
-            });
+            // Tutaj wstaw kod usuwania wiersza z tabeli/modelu
             break;
-        case 'save-version': if (typeof _internalSaveCurrentEstimateAsVersion === 'function') await _internalSaveCurrentEstimateAsVersion(false); break;
-        case 'save-estimate': if (typeof saveEstimateToFile === 'function') await saveEstimateToFile(); break;
-        case 'go-to-settings': activateTab('ustawienia'); break;
-        case 'print': if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal(); break;
+        case 'save-version':
+            if (typeof _internalSaveCurrentEstimateAsVersion === 'function') await _internalSaveCurrentEstimateAsVersion(false);
+            break;
+        case 'save-estimate':
+            if (typeof saveEstimateToFile === 'function') await saveEstimateToFile();
+            break;
+        case 'go-to-settings':
+            if (typeof activateTab === 'function') activateTab('ustawienia');
+            break;
+        case 'print':
+            if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal();
+            break;
+        // Dodaj inne akcje jeśli są potrzebne
+        default:
+            // Obsługa nieznanych akcji (opcjonalnie)
+            break;
     }
 };
 
