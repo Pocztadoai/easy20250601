@@ -14,11 +14,16 @@ let isDropdownInteraction = false;
 // ==========================================================================
 // SEKCJA 1: INICJALIZACJA MODUŁU
 // ==========================================================================
+// ==========================================================================
+// SEKCJA 1: INICJALIZACJA MODUŁU
+// ==========================================================================
 async function initEstimateLogic() {
-    console.log("Inicjalizacja logiki kosztorysu (EazyKoszt 0.6.1B-script-estimate.js)...");
+    console.log("Inicjalizacja logiki kosztorysu (EazyKoszt 0.6.1C-script-estimate.js)...");
+    console.log("DEBUG: initEstimateLogic - Start."); // <-- DODANO
 
     if (addRowBtn) {
         addRowBtn.addEventListener('click', async () => {
+            console.log("DEBUG: addRowBtn kliknięty!"); // <-- DODANO
             if (typeof removeInsertIndicator === 'function') removeInsertIndicator();
             let insertBeforeNode = null;
             if (lastClickedRow && costTableBody && costTableBody.contains(lastClickedRow)) {
@@ -29,12 +34,12 @@ async function initEstimateLogic() {
             // Zmieniono: addRow teraz modyfikuje model i wywołuje renderCostTable
             await addRow(null, false, insertBeforeNode);
         });
-        addRowBtn.addEventListener('mouseenter', () => { if(typeof showInsertIndicator === 'function') showInsertIndicator('task'); });
-        addRowBtn.addEventListener('mouseleave', () => { if(typeof removeInsertIndicator === 'function') removeInsertIndicator(); });
+        console.log("DEBUG: addRowBtn listener przypisany."); // <-- DODANO
     } else { console.warn("Przycisk addRowBtn nie znaleziony w initEstimateLogic."); }
 
     if (addDepartmentBtn) {
-        addDepartmentBtn.addEventListener('click', () => {
+        addDepartmentBtn.addEventListener('click', async () => { // Dodano async
+            console.log("DEBUG: addDepartmentBtn kliknięty!"); // <-- DODANO
             if (typeof removeInsertIndicator === 'function') removeInsertIndicator();
             let insertBeforeNode = null;
             if (lastClickedRow && costTableBody && costTableBody.contains(lastClickedRow)) {
@@ -50,14 +55,16 @@ async function initEstimateLogic() {
                 } else insertBeforeNode = costTableBody.firstChild;
             } else insertBeforeNode = costTableBody.firstChild;
             // Zmieniono: addSpecialRow teraz modyfikuje model i wywołuje renderCostTable
-            addSpecialRow('department', '', false, false, null, insertBeforeNode);
+            await addSpecialRow('department', '', false, false, null, insertBeforeNode); // Dodano await
         });
+        console.log("DEBUG: addDepartmentBtn listener przypisany."); // <-- DODANO
         addDepartmentBtn.addEventListener('mouseenter', () => { if(typeof showInsertIndicator === 'function') showInsertIndicator('department'); });
         addDepartmentBtn.addEventListener('mouseleave', () => { if(typeof removeInsertIndicator === 'function') removeInsertIndicator(); });
     }  else { console.warn("Przycisk addDepartmentBtn nie znaleziony w initEstimateLogic."); }
 
     if (addSubDepartmentBtn) {
-        addSubDepartmentBtn.addEventListener('click', () => {
+        addSubDepartmentBtn.addEventListener('click', async () => { // Dodano async
+            console.log("DEBUG: addSubDepartmentBtn kliknięty!"); // <-- DODANO
             if (typeof removeInsertIndicator === 'function') removeInsertIndicator();
             let insertBeforeNode = null;
              if(lastClickedRow && costTableBody && costTableBody.contains(lastClickedRow)) {
@@ -89,14 +96,16 @@ async function initEstimateLogic() {
                  }
              }
             // Zmieniono: addSpecialRow teraz modyfikuje model i wywołuje renderCostTable
-            addSpecialRow('subdepartment', '', false, false, null, insertBeforeNode);
+            await addSpecialRow('subdepartment', '', false, false, null, insertBeforeNode); // Dodano await
         });
+        console.log("DEBUG: addSubDepartmentBtn listener przypisany."); // <-- DODANO
         addSubDepartmentBtn.addEventListener('mouseenter', () => { if(typeof showInsertIndicator === 'function') showInsertIndicator('subdepartment'); });
         addSubDepartmentBtn.addEventListener('mouseleave', () => { if(typeof removeInsertIndicator === 'function') removeInsertIndicator(); });
     } else { console.warn("Przycisk addSubDepartmentBtn nie znaleziony w initEstimateLogic."); }
 
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', clearEstimate); // clearEstimate wywołuje updateModelAndRender
+        console.log("DEBUG: clearAllBtn listener przypisany."); // <-- DODANO
     } else {
         console.warn("Przycisk clearAllBtn nie znaleziony w initEstimateLogic.");
     }
@@ -156,7 +165,7 @@ async function initEstimateLogic() {
         headers.forEach(th => { th.addEventListener('click', async () => { const sortKey = th.dataset.sortKey; if (!sortKey) return; if (materialSortColumn === sortKey) materialSortDirection = materialSortDirection === 'asc' ? 'desc' : 'asc'; else { materialSortColumn = sortKey; materialSortDirection = 'asc'; } await calculateMaterialSummary(); }); });
     } else { console.warn("Tabela materialSummaryTable nie znaleziona w initEstimateLogic.");}
 
-    console.log("Logika kosztorysu (script-estimate.js) zainicjalizowana.");
+    console.log("DEBUG: initEstimateLogic - Koniec."); // <-- DODANO
 }
 
 
