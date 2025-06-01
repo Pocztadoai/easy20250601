@@ -975,18 +975,14 @@ async function processCsvFile() { if (!selectedCsvFile) { showNotification("Wybi
 // ==========================================================================
 // SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
 // ==========================================================================
-/// UWAGA: NIE deklaruj tutaj showCustomContextMenu!
-// Deklaracja tej funkcji powinna być tylko w jednym pliku (np. script-core.js).
-
-const hideCustomContextMenu = () => {
-    if (customContextMenu) customContextMenu.style.display = 'none';
-    contextMenuTargetRow = null;
-};
+// UWAGA: NIE deklaruj tutaj showCustomContextMenu ani hideCustomContextMenu!
+// Obie funkcje powinny być zadeklarowane tylko raz (np. w script-core.js).
 
 const handleContextMenuAction = async (event) => {
     if (!event.target.matches('#custom-context-menu li') || event.target.classList.contains('disabled')) return;
     const action = event.target.dataset.action;
-    hideCustomContextMenu();
+    // hideCustomContextMenu jest globalna, wywołujemy ją, ale nie deklarujemy!
+    if (typeof hideCustomContextMenu === 'function') hideCustomContextMenu();
     const targetDomRow = contextMenuTargetRow || lastClickedRow; // Element DOM wiersza
 
     switch (action) {
@@ -1007,7 +1003,7 @@ const handleContextMenuAction = async (event) => {
                 console.warn("handleContextMenuAction: Brak docelowego wiersza do usunięcia.");
                 return;
             }
-            // Tutaj wstaw kod usuwania wiersza z tabeli/modelu
+            // ...tutaj dalsza logika usuwania...
             break;
         case 'save-version':
             if (typeof _internalSaveCurrentEstimateAsVersion === 'function') await _internalSaveCurrentEstimateAsVersion(false);
@@ -1021,9 +1017,8 @@ const handleContextMenuAction = async (event) => {
         case 'print':
             if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal();
             break;
-        // Dodaj inne akcje jeśli są potrzebne
+        // ... inne akcje ...
         default:
-            // Obsługa nieznanych akcji (opcjonalnie)
             break;
     }
 };
