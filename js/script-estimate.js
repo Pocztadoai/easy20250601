@@ -1,4 +1,4 @@
-// Plik: EazyKoszt 0.5.0-script-estimate.js
+// Plik: EazyKoszt 0.4.2-script-estimate.js
 // Opis: Logika związana z tabelą kosztorysu, w tym dodawanie wierszy,
 //       obliczenia wartości, obsługa zdarzeń w tabeli, przeciąganie i upuszczanie,
 //       oraz dynamiczne kolorowanie wierszy.
@@ -15,7 +15,7 @@ let isDropdownInteraction = false;
 // SEKCJA 1: INICJALIZACJA MODUŁU
 // ==========================================================================
 async function initEstimateLogic() {
-    console.log("Inicjalizacja logiki kosztorysu (EazyKoszt 0.5.0-script-estimate.js)...");
+    console.log("Inicjalizacja logiki kosztorysu (EazyKoszt 0.4.2-script-estimate.js)...");
 
     if (addRowBtn) {
         addRowBtn.addEventListener('click', async () => {
@@ -2098,66 +2098,4 @@ function getDragAndDropBlock(startDomRow) {
     return block; // Zwracamy tablicę obiektów z modelu
 }
 
-console.log("Moduł logiki kosztorysu (EazyKoszt 0.5.0-script-estimate.js - Ulepszenia UX) załadowany.");
-
-/*
-Notatki dotyczące zmian w `js/script-estimate.js`:
-
-1.  **`renderCostTable(model)` (NOWA FUNKCJA)**:
-    *   Jest to kluczowa, centralna funkcja renderująca tabelę HTML od podstaw na podstawie `currentEstimateModel`.
-    *   Iteruje po `model.rows` i dynamicznie tworzy elementy `<tr>`, `<td>`, `input` itp.
-    *   **Kolorowanie wierszy**: Logika `applyRowColor` (która została usunięta z `script-core.js`) została zintegrowana tutaj. Odczytuje kolory z `model.departmentColors` i stosuje je do DOM elementów wierszy, uwzględniając dziedziczenie i rozjaśnianie dla poddziałów i zadań.
-    *   **Event Listenery**: Wszystkie event listenery dla inputów (description, quantity) i ikon (notes, color picker) są dodawane dynamicznie podczas tworzenia DOM elementów. Te listenery wywołują funkcje, które modyfikują `currentEstimateModel` i następnie wywołują `updateModelAndRender`.
-    *   **`calculateRowValues`**: Wywoływana dla każdego wiersza zadania w pętli, przekazując obiekt wiersza z modelu (`rowData`) i DOM element (`newRow`).
-
-2.  **`calculateRowValues(rowObject, domRowElement)`**:
-    *   Zmieniono sygnaturę, aby przyjmowała obiekt `rowObject` z modelu i referencję do `domRowElement`.
-    *   Odczytuje dane (ilość, normy, ID katalogowe, lokalne nadpisania) z `rowObject`.
-    *   Oblicza wartości i aktualizuje odpowiednie komórki w `domRowElement`.
-
-3.  **`calculateAllTotals()`**:
-    *   Zmieniono, aby iterowała po DOM elementach wierszy (ponieważ `calculateRowValues` już zaktualizowała wartości w DOM) i sumowała wartości z ich komórek. `chapterSums` jest nadal mapowane do `rowId` wierszy DOM.
-
-4.  **`calculateMaterialSummary()`**:
-    *   Zmieniono, aby iterowała bezpośrednio po `currentEstimateModel.rows` (filtrując do zadań) i pobierała dane z obiektów w modelu.
-    *   Następnie generuje nową tabelę podsumowania materiałów w DOM.
-
-5.  **`renumberRows()`**:
-    *   Funkcja została przeniesiona z `script-core.js` do tego pliku.
-    *   Nadal iteruje po DOM elementach wierszy, aby zaktualizować ich numery L.p.
-
-6.  **`addRow()` i `addSpecialRow()`**:
-    *   Zmieniono, aby tworzyły **obiekty JavaScript** reprezentujące nowe wiersze i dodawały je do tablicy `currentEstimateModel.rows`.
-    *   Następnie wywołują `updateModelAndRender({ rows: updatedRows })`, co spowoduje ponowne renderowanie całej tabeli przez `renderCostTable`.
-    *   Logic `lastClickedRow` jest teraz zarządzana przez `renderCostTable` poprzez ponowne ustawienie podświetlenia po pełnym przerysowaniu.
-
-7.  **`handleDropdownClick()`**:
-    *   Zmieniono, aby po wyborze pozycji z katalogu aktualizowała odpowiedni obiekt wiersza w `currentEstimateModel.rows` (ustawiając `taskCatalogId`, `description`, `originalCatalogDesc` i usuwając `local...` atrybuty).
-    *   Wywołuje `updateModelAndRender` w celu odświeżenia UI.
-
-8.  **`handleSearchInputChangeAndPotentialRemoval()` (wewnątrz `renderCostTable`)**:
-    *   Zmieniono, aby aktualizowała `localDesc` i `taskCatalogId` (jeśli to konieczne) w odpowiednim obiekcie w `currentEstimateModel.rows`.
-    *   Logika usuwania pustego wiersza również operuje teraz na modelu (filtrując wiersze).
-    *   Wywołuje `updateModelAndRender`.
-
-9.  **`handleQuantityChange()` (wewnątrz `renderCostTable`)**:
-    *   Zmieniono, aby aktualizowała `quantity` w odpowiednim obiekcie w `currentEstimateModel.rows`.
-    *   Logika usuwania pustego wiersza również operuje teraz na modelu.
-    *   Wywołuje `updateModelAndRender`.
-
-10. **`clearEstimate()`**:
-    *   Zmieniono, aby resetowała `currentEstimateModel.rows` do pustej tablicy oraz czyściła `departmentColors` i ustawiała `isHierarchical` na `false` w `currentEstimateModel`.
-    *   Wywołuje `updateModelAndRender`.
-
-11. **`ensureFirstRowIsDepartmentIfNeeded()` i `activateHierarchicalMode()`**:
-    *   Zmieniono, aby modyfikowały `currentEstimateModel.rows` i `currentEstimateModel.isHierarchical` odpowiednio, a następnie wywoływały `updateModelAndRender`.
-
-12. **Drag & Drop (`handleDragStart`, `getDomDragAndDropBlock`, `handleDrop`)**:
-    *   `handleDrop` został znacząco zmieniony, aby modyfikował kolejność **obiektów** w `currentEstimateModel.rows`.
-    *   `getDragAndDropBlock` została zmieniona, aby pobierała odpowiednie obiekty z modelu.
-    *   `handleDragStart` używa pomocniczej funkcji `getDomDragAndDropBlock` do zarządzania klasami CSS na DOM elementach podczas przeciągania.
-    *   Po zmianie kolejności w modelu, wywołuje `updateModelAndRender`.
-
-*/
-
-
+console.log("Moduł logiki kosztorysu (EazyKoszt 0.4.2-script-estimate.js - Ulepszenia UX) załadowany.");
