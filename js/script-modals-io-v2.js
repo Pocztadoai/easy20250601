@@ -1,11 +1,3 @@
-// Plik: EazyKoszt 0.6.1C-script-modals-io.js
-// Opis: Logika obsługi okien modalnych, operacji importu/eksportu danych,
-//       zarządzania szablonami, wersjami oraz interfejsem użytkownika katalogów.
-// Wersja 0.6.1C: Poprawka błędu składni w `_updateEstimateRowFromModal`.
-
-// ==========================================================================
-// SEKCJA 1: INICJALIZACJA MODUŁU I GŁÓWNYCH LISTENERÓW
-// ==========================================================================
 async function initModalsAndIO() {
     console.log("Inicjalizacja modali i I/O (EazyKoszt 0.6.1C-script-modals-io.js)...");
 
