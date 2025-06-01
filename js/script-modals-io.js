@@ -1292,7 +1292,7 @@ async function initApp() {
         initUserActivityListeners(); // Rozpocznij śledzenie aktywności
         startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
 
-        if (document.querySelector('.tab.active[data-tab="ustawienia']')) {
+        if (document.querySelector('.tab.active[data-tab="ustawienia"]')) { // <-- Dodano ']'
             if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
         }
 
