@@ -1,3 +1,11 @@
+// Plik: EazyKoszt 0.6.1C-script-modals-io.js
+// Opis: Logika obsługi okien modalnych, operacji importu/eksportu danych,
+//       zarządzania szablonami, wersjami oraz interfejsem użytkownika katalogów.
+// Wersja 0.6.1C: Poprawka błędu składni w `_updateEstimateRowFromModal`.
+
+// ==========================================================================
+// SEKCJA 1: INICJALIZACJA MODUŁU I GŁÓWNYCH LISTENERÓW
+// ==========================================================================
 async function initModalsAndIO() {
     console.log("Inicjalizacja modali i I/O (EazyKoszt 0.6.1C-script-modals-io.js)...");
 
@@ -481,14 +489,9 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
             let confirmedAction = false;
             await new Promise(resolve => {
                 showConfirmNotification(`Dane pozycji "${newDesc}" różnią się od pozycji katalogowej "${baseCatalogTask.description}".<br><br><b>[OK]</b> = Zapisz zmiany jako NOWĄ pozycję w katalogu (lub zaktualizuj istniejącą o tym samym opisie, jeśli jest Twoja).<br><b>[Anuluj]</b> = Zapisz zmiany tylko dla TEGO WIERSZA w kosztorysie (jako modyfikacja lokalna).`,
-                // Poprawiono: upewnij się, że nawiasy i przecinki są prawidłowe
-                async () => { // Callback dla OK
-                    saveToCatalogInstead = true; confirmedAction = true; resolve();
-                },
-                async () => { // Callback dla Anuluj
-                    saveToCatalogInstead = false; confirmedAction = true; resolve();
-                }
-                ); // <-- Upewnij się, że ten nawias zamykający jest na końcu wywołania showConfirmNotification
+                () => { saveToCatalogInstead = true; confirmedAction = true; resolve(); },
+                () => { saveToCatalogInstead = false; confirmedAction = true; resolve(); }
+                );
             });
             if (!confirmedAction && !saveToCatalogInstead) return false;
         }
@@ -496,14 +499,9 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
         let confirmedAction = false;
         await new Promise(resolve => {
             showConfirmNotification(`Opis "${newDesc}" nie pasuje do żadnej znanej pozycji katalogowej lub jest to nowa pozycja lokalna.<br><br><b>[OK]</b> = Zapisz jako NOWĄ pozycję w katalogu.<br><b>[Anuluj]</b> = Zapisz zmiany tylko dla TEGO WIERSZA w kosztorysie.`,
-            // Poprawiono: upewnij się, że nawiasy i przecinki są prawidłowe
-            async () => { // Callback dla OK
-                saveToCatalogInstead = true; confirmedAction = true; resolve();
-            },
-            async () => { // Callback dla Anuluj
-                saveToCatalogInstead = false; confirmedAction = true; resolve();
-            }
-            ); // <-- Upewnij się, że ten nawias zamykający jest na końcu wywołania showConfirmNotification
+            () => { saveToCatalogInstead = true; confirmedAction = true; resolve(); },
+            () => { saveToCatalogInstead = false; confirmedAction = true; resolve(); }
+            );
         });
         if (!confirmedAction && !saveToCatalogInstead) return false;
     }
@@ -616,6 +614,7 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
 async function saveModalData() { if (!currentEditContext) { console.error("Brak kontekstu edycji przy próbie zapisu modala."); return false; } let success = false; if (currentEditContext === 'new_custom' || currentEditContext === 'edit_custom') { success = await _saveOrUpdateCatalogTask(currentEditContext === 'edit_custom', currentEditingRef); } else if (currentEditContext === 'edit_row') { success = await _updateEstimateRowFromModal(currentEditingRef); } else { showNotification("Błąd zapisu. Nieznany kontekst edycji.", 'error'); return false; } // Zmieniono: updateModelAndRender jest już wywoływane w _saveOrUpdateCatalogTask i _updateEstimateRowFromModal
     return success; }
 async function compareMaterialNorms(localNormsWithName, catalogNormsWithId) { if (!Array.isArray(localNormsWithName) && !Array.isArray(catalogNormsWithId)) return localNormsWithName === catalogNormsWithId; if (!Array.isArray(localNormsWithName) || !Array.isArray(catalogNormsWithId)) return true; if (localNormsWithName.length !== catalogNormsWithId.length) return true; if (localNormsWithName.length === 0 && catalogNormsWithId.length === 0) return false; const localNormsProcessed = []; for (const ln of localNormsWithName) { if (!ln.name) return true; const mat = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', ln.name); if (!mat) return true; localNormsProcessed.push({ materialId: mat.id, quantity: ln.quantity, unit: ln.unit || mat.unit }); } const sortedLocal = [...localNormsProcessed].sort((a, b) => a.materialId - b.materialId); const sortedCatalog = [...catalogNormsWithId].sort((a, b) => a.materialId - b.materialId); for (let i = 0; i < sortedLocal.length; i++) { if (sortedLocal[i].materialId !== sortedCatalog[i].materialId || sortedLocal[i].quantity !== sortedCatalog[i].quantity || (sortedLocal[i].unit || 'j.m.') !== (sortedCatalog[i].unit || 'j.m.')) return true; } return false; }
+
 // ==========================================================================
 // SEKCJA 6: OBSŁUGA MODALA DANYCH OGÓLNYCH KOSZTORYSU (bez zmian)
 // ==========================================================================
@@ -1284,7 +1283,7 @@ async function initApp() {
         initUserActivityListeners(); // Rozpocznij śledzenie aktywności
         startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
 
-        if (document.querySelector('.tab.active[data-tab="ustawienia"]')) { // <-- Dodano ']'
+        if (document.querySelector('.tab.active[data-tab="ustawienia']')) {
             if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
         }
 
