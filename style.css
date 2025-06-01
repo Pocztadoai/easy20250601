@@ -1,276 +1,1014 @@
-/* print-style.css - KOSZTPOL v3.0 - Wersja 0.6.1A */
+/* style.css - KOSZTPOL v3.0 - wersja 0.6.1A - Zrestrukturyzowany */
 
-/* ========================================================================== */
-/* SEKCJA: PODSTAWOWE USTAWIENIA WYDRUKU (CZCIONKA, TŁO, MARGINESY)           */
-/* ========================================================================== */
+/* ==========================================================================
+   1. SEKCJA: ZMIENNE GLOBALNE CSS I PODSTAWOWY RESET
+   ========================================================================== */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --light-gray: #f5f7fa;
+    --medium-gray: #e1e5eb;
+    --dark-gray: #7f8c8d;
+    --text-color: #333;
+    --border-radius: 4px;
+    --box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --action-bar-height: 55px;
+    --table-header-bg: var(--primary-color);
+    --table-header-text-color: #ffffff;
+    --table-row-hover-bg: #f1f9ff;
+    --sticky-header-height: 95px;
+    --settings-bg-general: #fdfdfe;
+    --settings-bg-labor: #f9fafb;
+    --settings-bg-csv: #fdfdfe;
+    --settings-bg-versions: #f9fafb;
+    --settings-bg-configurator: #fdfdfe;
+    --success-color: #28a745;
+    --error-color: var(--accent-color);
+    --warning-color: #ffc107;
+    --info-color: var(--secondary-color);
+    --task-row-default-bg: transparent;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
 body {
-    font-size: 10pt;
-    background-color: #fff !important;
-    color: #000 !important;
-    margin: 15mm;
-    font-family: Arial, sans-serif;
-    line-height: 1.3;
+    background-color: var(--light-gray);
+    color: var(--text-color);
+    line-height: 1.5;
+    padding: 0 15px var(--action-bar-height) 15px;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-top: var(--dynamic-sticky-header-height, var(--sticky-header-height));
+    font-size: 13px;
 }
 
-/* ========================================================================== */
-/* SEKCJA: STYLE NAGŁÓWKÓW (H1, H2, H3) NA WYDRUKU                         */
-/* ========================================================================== */
-h1, h2, h3 {
-    color: #000 !important;
-    border-bottom: 1px solid #ccc;
-    margin-top: 1.5em;
-    margin-bottom: 0.8em;
-    page-break-after: avoid;
-    font-family: Arial, sans-serif;
-}
-h1 { font-size: 16pt; text-align: center; font-weight: bold; margin-bottom: 1em;}
-h2 { font-size: 13pt; font-weight: bold; margin-bottom: 0.6em;}
-h3 { font-size: 11pt; font-weight: bold; margin-bottom: 0.5em;}
+/* ==========================================================================
+   2. SEKCJA: NAGŁÓWKI TEKSTOWE (H1, H2, H3)
+   Opis: Podstawowe style dla głównych nagłówków w aplikacji.
+   ========================================================================== */
+h1 { color: var(--primary-color); font-size: 18px; font-weight: 600; flex-shrink: 0; margin: 0; padding: 0;}
+h2 { color: var(--primary-color); font-size: 18px; margin-bottom: 12px; font-weight: 600; border-bottom: 1px solid var(--medium-gray); padding-bottom: 6px; }
+h3 { color: var(--primary-color); font-size: 16px; margin-top: 20px; margin-bottom: 8px; font-weight: 500; }
 
-h1 + hr + table,
-.container h1 + .section.details + .section.summary + .signatures,
-.container h1 + .section.details + h2 + table,
-/* Dodajemy nową sekcję analizy zysku materiałów, aby też zaczynała się od nowej strony */
-.analysis-print-section:has(h3:contains("Analiza Zysku z Zakupu Materiałów"))
-{
-    page-break-before: always;
+/* ==========================================================================
+   3. SEKCJA: STAŁY NAGŁÓWEK GÓRNY I NAWIGACJA ZAKŁADKAMI
+   Opis: Style dla przyklejonego do góry paska z tytułem aplikacji,
+         głównymi przyciskami akcji oraz zakładkami nawigacyjnymi.
+   ========================================================================== */
+#sticky-header-tabs {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1100;
+    background-color: var(--light-gray);
+    padding: 3px 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-bottom: 1px solid var(--medium-gray);
+    display: flex; flex-direction: column; gap: 3px;
+}
+.sticky-header-row { /* Kontener dla tytułu i głównych przycisków */
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: nowrap; gap: 8px; min-height: 35px;
+}
+.main-header-buttons { /* Grupa przycisków w nagłówku (np. Zapisz, Wczytaj) */
+    display: flex; gap: 5px; flex-wrap: nowrap;
+    justify-content: flex-end; flex-shrink: 0;
+}
+.main-header-buttons button, .main-header-buttons select {
+    padding: 4px 8px; font-size: 0.75em; /* Zmniejszone dla kompaktowości */
+}
+.tabs { /* Kontener zakładek */
+    display: flex; background-color: #fff;
+    border-radius: var(--border-radius); box-shadow: none;
+    overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap;
+    border: 1px solid var(--medium-gray); -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tabs { scrollbar-width: none; }
+.tab { /* Pojedyncza zakładka */
+    padding: 6px 12px; cursor: pointer; background-color: #fff;
+    border: none; border-bottom: 2px solid transparent;
+    font-size: 12px; font-weight: 500; transition: all .2s ease;
+    flex-shrink: 0; text-align: center; color: var(--dark-gray); white-space: nowrap;
+}
+.tab:not(.active):hover {
+    color: var(--primary-color);
+    border-bottom-color: var(--medium-gray);
+    background-color: #f9f9f9;
+}
+.tab.active {
+    border-bottom-color: var(--secondary-color);
+    color: var(--secondary-color);
+    background-color: #e9f5fd;
 }
 
-h1 + hr {
-    margin-bottom: 0.5em !important;
+/* ==========================================================================
+   4. SEKCJA: KONTENER GŁÓWNEJ TREŚCI ZAKŁADEK
+   Opis: Style dla obszaru, w którym wyświetlana jest zawartość aktywnej zakładki.
+   ========================================================================== */
+.tab-contents-wrapper > .tab-content { display: none; }
+.tab-contents-wrapper > .tab-content.active {
+    display: block; animation: fadeIn .3s; background: #fff;
+    padding: 15px; border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow); margin-top: 15px;
 }
-h1:has(+ hr + table) {
-    margin-bottom: 0.3em !important;
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+/* ==========================================================================
+   5. SEKCJA: OGÓLNE STYLE FORMULARZY I PRZYCISKÓW
+   Opis: Podstawowe style dla pól input, select, label oraz przycisków.
+   ========================================================================== */
+.form-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px; margin-bottom: 12px;
+}
+.form-group, .setting-item { margin-bottom: 10px; }
+label {
+    display: block; margin-bottom: 5px; font-weight: 500;
+    color: var(--primary-color); font-size: .85em;
+}
+input[type=text], input[type=number], input[type=file], select {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--medium-gray);
+    border-radius: var(--border-radius); font-size: 13px;
+    transition: border .2s ease; background-color: #fff;
+}
+input[type=text]:focus, input[type=number]:focus, select:focus {
+    border-color: var(--secondary-color); outline: 0;
+    box-shadow: 0 0 0 2px rgba(52,152,219,.2);
+}
+button {
+    background-color: var(--secondary-color); color: #fff; border: none;
+    padding: 7px 12px; border-radius: var(--border-radius); cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: background-color .2s ease;
+    white-space: nowrap; line-height: 1.2;
+}
+button:hover { background-color: #2980b9; }
+button.secondary {
+    background-color: #fff; color: var(--primary-color);
+    border: 1px solid var(--medium-gray);
+}
+button.secondary:hover { background-color: var(--light-gray); border-color: var(--dark-gray); }
+button.danger { background-color: var(--accent-color); }
+button.danger:hover { background-color: #c0392b; }
+button.small-action-btn { padding: 5px 9px; font-size: 0.8em; }
+.button-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+input[type="checkbox"] { margin-right: 5px; vertical-align: middle; }
+
+/* ==========================================================================
+   6. SEKCJA: KOSZTORYS GŁÓWNY (#cost-table)
+   Opis: Style dla głównej tabeli kosztorysu, wierszy, komórek,
+         oraz elementów specyficznych dla tej tabeli (ikony, inputy w komórkach).
+   ========================================================================== */
+#cost-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 20px;
+    background-color: #fff; border-radius: var(--border-radius);
+    overflow: hidden; box-shadow: var(--box-shadow);
+    font-size: 13px; table-layout: fixed;
+}
+#cost-table th, #cost-table td { /* Ogólne dla komórek tabeli kosztorysu */
+    padding: 8px 6px; text-align: left;
+    border-bottom: 1px solid var(--medium-gray);
+    vertical-align: middle; word-wrap: break-word;
+}
+#cost-table th { /* Nagłówki tabeli kosztorysu */
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text-color) !important;
+    font-weight: 500; white-space: nowrap; font-size: 0.9em; padding: 6px 6px;
+}
+#cost-table tbody tr:hover > td { /* Efekt hover dla wierszy */
+    background-color: var(--table-row-hover-bg) !important;
+}
+#cost-table tbody tr[style*="background-color"]:hover > td {
+    /* Można dodać subtelny efekt, np. box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); */
+}
+#cost-table tfoot td { /* Stopka tabeli kosztorysu */
+    font-weight: 700; background-color: var(--light-gray);
+    border-top: 2px solid var(--medium-gray); padding: 6px 6px;
+}
+
+/* Definicje szerokości kolumn w tabeli kosztorysu */
+.col-drag { width: 20px; text-align: center; padding: 8px 0; }
+.col-lp { width: 45px; text-align: center; white-space: nowrap; padding: 8px 4px; }
+.col-desc { width: auto; } /* Kolumna opisu jest elastyczna */
+.col-unit { width: 7%; text-align: center; }
+.col-qty { width: 8%; text-align: right; }
+.col-price-r-unit, .col-price-m-unit, .col-price-total, .col-value {
+    width: 9%; text-align: right; white-space: nowrap;
+}
+
+/* Elementy w komórce opisu: input, ikony */
+#cost-table .col-desc > div:first-child,
+.col-special-desc > div:first-child { /* Kontener dla inputa i ikon */
+    display: flex; align-items: center; justify-content: space-between;
+}
+.notes-icon-wrapper, .special-row-icons-container {
+    display: flex; align-items: center; margin-left: 6px;
+    position: relative; flex-shrink: 0;
+}
+.special-row-icons-container { gap: 4px; }
+.notes-icon, .color-picker-icon, .edit-special-row-icon { /* Ikony akcji w wierszu */
+    cursor: pointer; font-size: 1em; color: var(--dark-gray);
+    padding: 2px 4px; border-radius: var(--border-radius);
+    transition: background-color 0.2s ease, color 0.2s ease; line-height: 1;
+}
+.notes-icon:hover, .color-picker-icon:hover, .edit-special-row-icon:hover {
+    background-color: var(--medium-gray); color: var(--primary-color);
+}
+.notes-icon.has-notes { color: var(--secondary-color); }
+.notes-preview-tooltip { /* Podgląd notatki */
+    display: none; position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%) translateY(-5px); background-color: #fff;
+    border: 1px solid var(--medium-gray); padding: 6px 10px;
+    border-radius: var(--border-radius); box-shadow: var(--box-shadow);
+    font-size: 0.8em; z-index: 1200; max-width: 350px; width: max-content;
+    white-space: pre-wrap; color: var(--text-color); text-align: left;
+    pointer-events: none;
+}
+.notes-icon-wrapper:hover .notes-preview-tooltip { display: block; }
+
+/* Wiersze specjalne (Dział/Poddział) i ich inputy */
+.department-row td, .subdepartment-row td {
+    vertical-align: middle; border-bottom: 1px solid #ccc; color: var(--text-color);
+}
+.department-row { font-weight: bold; }
+.subdepartment-row { font-style: italic; }
+.department-row td { border-top: 2px solid #bbb; border-bottom: 1px solid #bbb; }
+.subdepartment-row td { border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; }
+.department-row .col-lp, .subdepartment-row .col-lp { font-weight: bold; font-style: normal; }
+.col-special-desc { text-align: left; padding-left: 12px !important; }
+.subdepartment-row .col-special-desc { padding-left: 25px !important; }
+.special-row-input { /* Input dla nazwy działu/poddziału */
+    width: 100%; border: none; background-color: transparent;
+    font-weight: inherit; font-style: inherit; font-size: inherit;
+    padding: 2px 0; margin: 0; outline: none; color: inherit;
+}
+.special-row-input:focus {
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: inset 0 0 0 1px var(--secondary-color);
+}
+
+/* Tło dla wierszy zadań - domyślnie z configa, ale JS może nadpisać kolor dziedziczeniem */
+#cost-table-body tr[data-row-type="task"] > td {
+    background-color: var(--task-row-default-bg);
+    color: var(--text-color); /* Fallback, może być nadpisane przez JS */
+}
+#cost-table-body tr[data-row-type="task"] .task-search-input,
+#cost-table-body tr[data-row-type="task"] .quantity-input {
+    color: inherit; /* Dziedzicz kolor tekstu z rodzica */
+}
+
+
+/* Podświetlenie aktywnego klikniętego wiersza */
+#cost-table-body tr.last-clicked-row-highlight > td {
+    background-color: #cce5ff !important; color: #004085 !important;
+}
+#cost-table-body tr.last-clicked-row-highlight .special-row-input,
+#cost-table-body tr.last-clicked-row-highlight .task-search-input {
+    color: #004085 !important;
+}
+
+/* Paleta kolorów dla wierszy */
+.color-palette { /* Kontener palety */
+    display: none; position: absolute; z-index: 10001; background-color: #fff;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 6px;
+    flex-wrap: wrap; gap: 4px; width: auto; max-width: 180px;
+}
+.color-palette-item { /* Pojedynczy kwadracik koloru */
+    width: 20px; height: 20px; border-radius: 3px; cursor: pointer;
+    border: 1px solid var(--medium-gray);
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+.color-palette-item:hover { transform: scale(1.1); box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+.color-palette-item.no-color { /* Opcja usunięcia koloru */
+    background-image: linear-gradient(45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #ccc 75%),
+                      linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    background-color: #fff;
+}
+
+/* Drag & Drop w tabeli kosztorysu */
+.drag-handle { /* Uchwyt do przeciągania */
+    cursor: grab; display: inline-block; padding: 2px 4px;
+    user-select: none; font-size: 1em; line-height: 1;
+    color: var(--dark-gray); width: 100%; text-align: center;
+}
+.drag-handle:active, tr.dragging .drag-handle { cursor: grabbing; }
+#cost-table-body tr.dragging, #cost-table-body tr.dragging-child { /* Przeciągany wiersz i jego dzieci */
+    opacity: 0.6; background-color: #d6eaff !important;
+    border: 1px dashed var(--secondary-color);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+#cost-table-body tr.drag-over { /* Wiersz, nad którym jest przeciągany element */
+    border-top: 3px solid var(--secondary-color) !important; /* Ważne, aby nadpisać inne style */
+    background-color: #e9f5fd !important; /* Lekkie tło dla lepszej widoczności */
+}
+
+
+/* Wskaźnik wstawiania wiersza */
+.insert-indicator-row td.insert-indicator-cell {
+    height: 3px !important; padding: 0 !important; border: none !important;
+    background-color: var(--accent-color) !important; opacity: 0.7;
+    line-height: 0; font-size: 0; transition: opacity 0.2s ease-in-out;
+}
+tr.insert-indicator-row { position: relative; top: -1px; }
+
+/* Normy wyświetlane pod pozycją */
+.norms-display {
+    font-size: 11px; color: var(--dark-gray); margin-top: 4px;
+    padding-left: 4px; border-left: 2px solid var(--medium-gray); line-height: 1.3;
+}
+.norms-display ul { margin: 2px 0 0 8px; padding: 0; list-style-type: none; }
+.norms-display li { margin-bottom: 1px; }
+.norms-display strong { color: var(--text-color); font-weight: 600; }
+
+/* ==========================================================================
+   7. SEKCJA: SUGESTIE WYSZUKIWANIA POZYCJI (DROPDOWN/MODAL)
+   Opis: Style dla okna modalnego (lub dropdownu) pojawiającego się
+         podczas wpisywania opisu pozycji w tabeli kosztorysu.
+   ========================================================================== */
+.suggestions-container { position: relative; width: 100%;}
+.suggestions-container .task-search-input[readonly] {
+    background-color: #f0f0f0; cursor: not-allowed; border-color: #ddd;
+}
+.suggestions-container .change-task-btn { /* Przycisk "Zmień" przy wybranej pozycji */
+    padding: 5px 7px !important; font-size: 0.85em !important;
+    line-height: 1 !important; min-width: auto;
+}
+.suggestions-dropdown-overlay { /* Tło za modalem sugestii */
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); z-index: 1040;
+}
+.suggestions-dropdown { /* Główny kontener modala sugestii */
+    display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%; max-width: 600px; min-height: 280px; max-height: 75vh;
+    overflow-y: auto; background-color: #fff;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1050;
+    font-size: 13px; padding: 15px; box-sizing: border-box;
+}
+.suggestions-dropdown ul { /* Lista wewnątrz modala */
+    list-style: none; padding: 0; margin: 0;
+    max-height: calc(75vh - 70px); overflow-y: auto;
+}
+.suggestions-dropdown .department-header { /* Nagłówek działu/kategorii w sugestiach */
+    padding: 8px 10px; font-weight: 700; background-color: #f0f0f0;
+    cursor: pointer; border-bottom: 1px solid #e0e0e0;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.suggestions-dropdown .department-header::after { content: '▶'; font-size: .8em; color: #666; margin-left: 10px; }
+.suggestions-dropdown .department-header:hover { background-color: #e0e0e0; }
+.suggestions-dropdown .task-item { /* Pojedyncza pozycja zadania w sugestiach */
+    padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #eee;
+}
+.suggestions-dropdown .task-item:last-child { border-bottom: none; }
+.suggestions-dropdown .task-item:hover { background-color: #e9ecef; }
+.suggestions-dropdown .back-to-departments { /* Przycisk "Powrót" */
+    padding: 8px 10px; font-weight: 700; font-style: italic; color: #0056b3;
+    background-color: #f8f9fa; cursor: pointer;
+    border-bottom: 1px solid #ccc; border-top: 1px solid #ddd;
+}
+.suggestions-dropdown .back-to-departments:hover { background-color: #e2e6ea; }
+.suggestions-dropdown li.active { /* Aktywnie wybrany element (nawigacja klawiaturą) */
+    background-color: var(--secondary-color); color: #fff;
+}
+.suggestions-dropdown .department-header.active::after { color: #fff; }
+.suggestions-dropdown .no-results { /* Komunikat o braku wyników */
+    padding: 12px; color: #6c757d; text-align: center;
+    cursor: default; font-style: italic;
+}
+.suggestions-dropdown-close-btn { /* Przycisk zamknięcia modala sugestii */
+    position: absolute; top: 8px; right: 12px; font-size: 26px;
+    font-weight: bold; color: var(--dark-gray); background: none;
+    border: none; cursor: pointer; line-height: 1; padding: 4px;
+}
+.suggestions-dropdown-close-btn:hover { color: var(--accent-color); }
+
+/* ==========================================================================
+   8. SEKCJA: MODALE OGÓLNE (Definicja pozycji, Wybór materiału, Notatki itp.)
+   Opis: Style dla różnych okien modalnych używanych w aplikacji.
+   ========================================================================== */
+.modal { /* Ogólny kontener modala (tło) */
+    display: none; position: fixed; z-index: 9000; left: 0; top: 0;
+    width: 100%; height: 100%; background-color: rgba(0,0,0,.5);
+    animation: fadeIn .3s; overflow-y: auto;
+}
+.modal-content { /* Właściwa treść modala */
+    background-color: #fff; margin: 2% auto; padding: 25px;
+    border-radius: var(--border-radius); box-shadow: var(--box-shadow);
+    width: 90%; max-width: 800px; position: relative;
+}
+.close-modal-btn { /* Przycisk "X" do zamykania modala */
+    float: right; font-size: 26px; font-weight: 700; cursor: pointer;
+    color: var(--dark-gray); transition: color .3s ease;
+    position: absolute; top: 12px; right: 18px; line-height: 1;
+}
+.close-modal-btn:hover { color: var(--accent-color); }
+.modal h2 { text-align: left; border: none; padding: 0; margin-bottom: 20px; }
+.modal-form .form-group { margin-bottom: 15px; }
+.modal-form label { font-size: 0.95em; }
+.modal-actions { /* Kontener na przyciski akcji w modalu (np. Zapisz, Anuluj) */
+    margin-top: 25px; display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* Modal definicji/edycji pozycji (#custom-task-modal) */
+#custom-task-materials-list { /* Lista norm materiałowych w modalu */
+    margin-bottom: 12px; max-height: 230px; overflow-y: auto;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    padding: 12px;
+}
+.material-norm-header { /* Nagłówki dla listy norm materiałowych */
+    display: grid; grid-template-columns: 1.5fr 0.5fr 1fr 0.8fr auto;
+    gap: 6px; margin-bottom: 8px; font-weight: 700;
+    color: var(--primary-color); font-size: .8em;
+    padding: 0 4px 4px 4px; border-bottom: 1px solid var(--medium-gray);
+}
+.material-norm-header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.material-norm-header span:not(:first-child) { text-align: center; }
+.material-norm-group { /* Pojedyncza grupa normy materiałowej */
+    display: grid; grid-template-columns: 1.5fr 0.5fr 1fr 0.8fr auto;
+    gap: 4px; margin-bottom: 6px; align-items: center;
+    padding-bottom: 6px; border-bottom: 1px dashed #eee;
+}
+.material-norm-group .material-input-wrapper { grid-column: 1 / span 1; display: flex; align-items: center; gap: 4px; }
+.material-norm-group .select-material-btn { grid-column: 2 / span 1; justify-self: center; }
+.material-norm-group .custom-mat-qty { grid-column: 3 / span 1; text-align: right; }
+.material-norm-group .custom-mat-unit { grid-column: 4 / span 1; text-align: center; }
+.material-norm-group .remove-material-btn { grid-column: 5 / span 1; justify-self: end; }
+.material-norm-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+#custom-task-materials-list input { font-size: 13px; padding: 7px 9px; }
+#custom-task-materials-list input.custom-mat-qty,
+#custom-task-materials-list input.custom-mat-unit,
+#custom-task-materials-list input.custom-mat-price-market,
+#custom-task-materials-list input.custom-mat-price-purchase { text-align: center; }
+.remove-material-btn { padding: 5px 9px; font-size: 11px; }
+.remove-material-btn.danger { background-color: var(--accent-color); color: #fff; }
+.remove-material-btn.danger:hover { background-color: #c0392b; }
+#add-material-norm-btn { margin-top: 12px; margin-bottom: 15px; }
+
+/* Modal notatek (#notes-modal) */
+#notes-modal-textarea {
+    width: 100%; min-height: 100px; padding: 8px;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    font-size: 13px; font-family: inherit; resize: vertical; margin-bottom: 12px;
+}
+#notes-modal-textarea:focus {
+    border-color: var(--secondary-color); outline: 0;
+    box-shadow: 0 0 0 2px rgba(52,152,219,.2);
+}
+#notes-modal-item-desc { /* Opis elementu, do którego dodawana jest notatka */
+    margin-bottom: 12px; font-style: italic; color: var(--dark-gray);
+    padding: 7px 9px; background-color: var(--light-gray);
+    border-radius: 3px; font-size: 0.85em; max-height: 50px;
+    overflow-y: auto; border: 1px solid var(--medium-gray);
+}
+
+/* Modal potwierdzenia (#confirm-notification-modal) */
+#confirm-notification-modal .modal-content {
+    border-left: 4px solid var(--warning-color); max-width: 420px;
+}
+#confirm-notification-modal h3 { color: var(--primary-color); font-size: 1.1em; }
+#confirm-notification-modal .modal-actions button { min-width: 70px; }
+
+/* Modal wyboru wydruków (#print-selection-modal) */
+#print-selection-modal .modal-content { max-width: 650px; }
+.print-options-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 15px;
+}
+.print-category { /* Grupa opcji wydruku */
+    border: 1px solid var(--medium-gray); padding: 12px;
+    border-radius: var(--border-radius); background-color: #fdfdfd;
+}
+.print-category h4 {
+    margin-top: 0; margin-bottom: 10px; font-size: 1em;
+    color: var(--primary-color); border-bottom: 1px solid var(--medium-gray);
+    padding-bottom: 6px;
+}
+.print-category div { margin-bottom: 8px; display: flex; align-items: center; }
+.print-category input[type="checkbox"].print-option {
+    margin-right: 7px; width: auto; transform: scale(1.05);
+}
+.print-category label {
+    font-weight: normal; font-size: 0.9em; color: var(--text-color);
+    margin-bottom: 0; cursor: pointer;
+}
+
+/* Modal szablonów (#templates-modal) */
+#templates-modal .modal-content { max-width: 650px; }
+#templates-list-container select {
+    width: 100%; margin-bottom: 8px; font-size: 0.9em; padding: 7px;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    background-color: #fff; min-height: 90px;
+}
+#templates-list-container option { padding: 4px 7px; font-size: 0.85em; }
+#templates-list-container option:checked { background-color: var(--secondary-color); color: white; }
+#templates-list-container option.department-template { font-style: italic; color: #555; }
+#templates-list-container option.estimate-template { font-weight: bold; }
+
+
+/* ==========================================================================
+   9. SEKCJA: WYKAZ MATERIAŁÓW (#material-summary-table)
+   Opis: Style dla tabeli podsumowania materiałów, w tym edytowalne ceny.
+   ========================================================================== */
+#material-summary-table {
+    font-size: 12px; margin-bottom: 18px; table-layout: auto;
+}
+#material-summary-table th, #material-summary-table td { /* Ogólne dla komórek wykazu */
+    padding: 5px 7px; vertical-align: middle; white-space: nowrap;
+}
+#material-summary-table th { font-size: 0.85em; } /* Nagłówki w wykazie */
+/* Szerokości kolumn w wykazie materiałów */
+#material-summary-table th:nth-child(1), #material-summary-table td:nth-child(1) { width: 25%; white-space: normal; word-break: break-word; } /* Materiał */
+#material-summary-table th:nth-child(2), #material-summary-table td:nth-child(2) { width: 8%; text-align: center; } /* Kategoria */
+#material-summary-table th:nth-child(3), #material-summary-table td:nth-child(3) { width: 8%; text-align: right; }  /* Ilość */
+#material-summary-table th:nth-child(4), #material-summary-table td:nth-child(4) { width: 8%; text-align: center; } /* j.m. */
+#material-summary-table th:nth-child(5), #material-summary-table td:nth-child(5) { width: 12%; text-align: right; } /* Cena Rynk. */
+#material-summary-table th:nth-child(6), #material-summary-table td:nth-child(6) { width: 12%; text-align: right; } /* Cena Zakupu */
+#material-summary-table th:nth-child(7), #material-summary-table td:nth-child(7) { width: 10%; text-align: right; } /* Zysk Jedn. */
+#material-summary-table th:nth-child(8), #material-summary-table td:nth-child(8) { width: 10%; text-align: right; } /* Wartość */
+#material-summary-table th:nth-child(9), #material-summary-table td:nth-child(9) { width: 10%; text-align: right; } /* Zysk Sum. */
+
+#material-summary-table input.material-summary-price-input,
+#material-summary-table input.material-summary-purchase-price-input { /* Edytowalne inputy cen */
+    padding: 3px 5px; font-size: 12px; width: 80px; margin-left: auto;
+    border: 1px solid transparent; border-radius: 3px; text-align: right;
+    background-color: transparent;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+#material-summary-table input.material-summary-price-input:hover,
+#material-summary-table input.material-summary-purchase-price-input:hover {
+    border-color: var(--medium-gray);
+}
+#material-summary-table input.material-summary-price-input:focus,
+#material-summary-table input.material-summary-purchase-price-input:focus {
+    border-color: var(--secondary-color); background-color: #fff; outline: 0;
+    box-shadow: 0 0 0 2px rgba(52,152,219,.2);
+}
+#material-summary-table tfoot td { padding: 7px 7px; font-weight: bold; }
+#material-summary-table tr.zero-price td { /* Wyróżnienie materiałów z ceną 0 */
+    background-color: #fff2f2 !important; color: #721c24 !important;
+}
+#material-summary-table tr.zero-price input.material-summary-price-input,
+#material-summary-table tr.zero-price input.material-summary-purchase-price-input {
+    font-weight: bold; color: #721c24; background-color: transparent;
+}
+#material-summary-table thead th[data-sort-key] { cursor: pointer; position: relative; }
+#material-summary-table thead th[data-sort-key]::after { /* Strzałki sortowania */
+    content: ''; position: absolute; right: 8px; top: 50%;
+    border: 4px solid transparent; opacity: 0.5; margin-top: -4px;
+}
+#material-summary-table thead th.sort-asc::after { border-bottom: 4px solid currentColor; margin-top: -2px; opacity: 1; }
+#material-summary-table thead th.sort-desc::after { border-top: 4px solid currentColor; margin-top: -6px; opacity: 1; }
+#material-summary-table td.editable-material-name-cell { cursor: text; position: relative; }
+#material-summary-table td.editable-material-name-cell input[type="text"] { /* Input do edycji nazwy materiału */
+    width: calc(100% - 4px); box-sizing: border-box; padding: 3px 5px;
+    font-size: inherit; font-family: inherit;
+    border: 1px solid var(--secondary-color); border-radius: 3px; background-color: #fff;
+}
+
+/* ==========================================================================
+   10. SEKCJA: KATALOGI WŁASNE
+   Opis: Style dla interfejsu zarządzania własnymi pozycjami kosztorysowymi
+         i materiałami (wyszukiwanie, listy, przyciski akcji).
+   ========================================================================== */
+.load-csv-section { /* Sekcja importu CSV w ustawieniach materiałów */
+    border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px;
+}
+.csv-controls { display: flex; align-items: center; gap: 8px; }
+#csv-file-input {
+    border: 1px solid #ccc; padding: 4px; border-radius: 3px;
+    flex-grow: 1; font-size: 13px;
+}
+#load-csv-button {
+    padding: 7px 12px; font-size: .85em;
+    background-color: #ffc107; color: #333;
+}
+#load-csv-button:disabled { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; }
+#load-csv-button:hover:not(:disabled) { background-color: #e0a800; }
+
+.catalog-items-list { /* Lista pozycji w katalogach własnych */
+    list-style: none; padding: 0; margin-top:8px;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+}
+.catalog-items-list .catalog-item { /* Pojedynczy element na liście katalogu */
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; border-bottom: 1px solid #eee;
+    flex-wrap: wrap; gap: 8px;
+}
+.catalog-items-list .catalog-item:last-child { border-bottom: none; }
+.catalog-items-list .catalog-item:hover { background-color: var(--light-gray); }
+.catalog-items-list .item-info { flex-grow: 1; }
+.catalog-items-list .item-description, .catalog-items-list .item-name {
+    display: block; font-weight: 500; color: var(--primary-color);
+    margin-bottom: 2px; font-size: 0.9em;
+}
+.catalog-items-list .item-details { font-size: 0.75em; color: var(--dark-gray); }
+.catalog-items-list .user-defined-tag { /* Etykieta "(Własne)" */
+    background-color: var(--secondary-color); color: white; padding: 1px 4px;
+    border-radius: 3px; font-size: 0.7em; margin-left: 5px; vertical-align: middle;
+}
+.catalog-items-list .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.catalog-items-list .item-actions button { font-size: 0.75em; padding: 3px 7px; }
+.catalog-branch-header, .catalog-department-header, .catalog-category-header { /* Nagłówki grupujące w listach katalogów */
+    padding: 7px 10px; font-weight: bold; background-color: #e9ecef;
+    border-bottom: 1px solid var(--medium-gray); color: var(--primary-color);
+    font-size: 0.85em;
+}
+.catalog-department-header { background-color: #f8f9fa; padding-left: 20px; font-style: italic; }
+.catalog-category-header { background-color: #f8f9fa; font-style: italic; }
+
+
+/* ==========================================================================
+   11. SEKCJA: ANALIZA OFERTY
+   Opis: Style dla elementów na zakładce "Analiza Oferty", w tym wykresy
+         i tabele podsumowujące koszty.
+   ========================================================================== */
+.analysis-section { /* Ogólny kontener dla sekcji analizy */
+    margin-bottom: 20px; padding-bottom: 15px;
+    border-bottom: 1px dashed var(--medium-gray); overflow-x: auto;
+}
+.analysis-section:last-child { border-bottom: none; }
+
+/* Wykresy podziału kosztów wg działów */
+#analysis-chart-departments-container { overflow-x: auto; padding-bottom: 8px; }
+#analysis-chart-departments { /* Flex container dla wykresów działów */
+    display: flex; flex-direction: row; flex-wrap: nowrap;
+    justify-content: flex-start; gap: 15px;
+    padding-bottom: 12px; min-width: min-content;
+}
+.department-chart-wrapper { /* Wrapper dla pojedynczego wykresu działu */
+    flex: 0 0 auto; width: 280px; min-height: 320px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-radius: var(--border-radius); background-color: #fff;
+    border: 1px solid var(--medium-gray);
+}
+.department-chart-wrapper h4 { /* Tytuł wykresu działu */
+    margin-bottom: 8px; font-size: 0.9em; color: var(--primary-color);
+    text-align: center; font-weight: 500; height: 30px;
+    width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+.department-chart-wrapper canvas { /* Canvas wykresu */
+    max-width: 100%; width: 200px !important; height: 200px !important;
+    margin-bottom: 4px;
+}
+
+/* Wykresy i tabele analizy robocizny */
+.labor-analysis-chart-wrapper.big-chart-wrapper { /* Duży wykres np. udziału pracowników */
+    flex: 1 1 450px; min-width: 360px; max-width: 550px; min-height: 400px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-radius: var(--border-radius); background-color: #fff;
+    border: 1px solid var(--medium-gray); margin: 0 auto 15px auto;
+}
+.labor-analysis-chart-wrapper.big-chart-wrapper h4 { margin-bottom: 12px; font-size: 1em; }
+.labor-analysis-chart-wrapper.big-chart-wrapper canvas {
+    width: 100% !important; max-width: 360px; height: auto !important;
+    aspect-ratio: 1 / 1; max-height: 360px;
+}
+.labor-analysis-table-wrapper { flex-basis: 100%; }
+.labor-analysis-table { /* Tabela robocizny wg działów i pracowników */
+    width: 100%; border-collapse: collapse; font-size: 0.8em;
+    margin-top: 8px; table-layout: auto;
+}
+.labor-analysis-table th, .labor-analysis-table td {
+    border: 1px solid var(--medium-gray); padding: 3px 5px;
+    text-align: left; vertical-align: top; word-break: break-word;
+}
+.labor-analysis-table th {
+    background-color: var(--light-gray); font-weight: bold;
+    white-space: nowrap; position: sticky; top: 0; z-index: 1;
+}
+.labor-analysis-table .department-summary-labor td { /* Podsumowanie dla działu w tabeli robocizny */
+    background-color: #e9ecef; font-weight: bold; padding-top: 6px;
+    padding-bottom: 6px; border-top: 2px solid var(--primary-color);
     text-align: left !important;
-    border-bottom: none !important;
-    font-size: 14pt !important;
 }
-.container h1 {
-    text-align: center !important;
-    border-bottom: 2px solid #000 !important;
-    font-size: 16pt !important;
-    margin-bottom: 20px !important;
+.labor-analysis-table tfoot td {
+    background-color: var(--primary-color); color: white;
+    font-weight: bold; font-style: normal;
 }
+.labor-analysis-table td[style*="text-align:right"] { text-align: right !important; white-space: nowrap; }
 
 
-/* ========================================================================== */
-/* SEKCJA: OGÓLNE STYLE TABEL NA WYDRUKU                                    */
-/* ========================================================================== */
-table {
-    border: 1px solid #aaa;
-    font-size: 9pt;
-    width: 100%;
-    page-break-inside: avoid;
-    margin-top: 0.2em;
-    border-collapse: collapse;
-    table-layout: fixed;
+/* Tabele analizy materiałów */
+#analysis-detailed-material-costs, #material-profit-details { font-size: 0.8em; }
+.material-analysis-table-wrapper,
+#material-profit-details .material-analysis-table-wrapper { width: 100%; overflow-x: auto; }
+.material-analysis-table { /* Tabela szczegółowa materiałów / zysku z materiałów */
+    width: 100%; border-collapse: collapse; font-size: 0.8em;
+    margin-top: 8px; table-layout: auto;
 }
-th, td {
-    border: 1px solid #bbb;
-    padding: 4px 5px;
-    vertical-align: top;
-    word-wrap: break-word;
+.material-analysis-table th, .material-analysis-table td {
+    border: 1px solid var(--medium-gray); padding: 3px 5px;
+    text-align: left; vertical-align: top; word-break: break-word;
 }
-th {
-    background-color: #e8e8e8 !important;
-    font-weight: bold !important;
-    text-align: left;
-    color: #000 !important;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+.material-analysis-table th {
+    background-color: var(--light-gray); font-weight: bold;
+    white-space: nowrap; position: sticky; top: 0; z-index: 1;
 }
-tbody tr { page-break-inside: avoid; }
-tbody tr:nth-child(even) {
-    background-color: transparent !important; /* Usunięto #f9f9f9, aby JS mógł kontrolować kolory */
+.material-analysis-table .category-header-analysis td { /* Nagłówek kategorii materiałowej */
+    background-color: #d1e7dd !important; font-weight: bold; padding-top: 6px;
+    padding-bottom: 6px; border-top: 2px solid #a3cfbb; text-align: left !important;
 }
-
-/* ========================================================================== */
-/* SEKCJA: DOPASOWANIE SZEROKOŚCI KOLUMN OPISOWYCH NA WYDRUKACH             */
-/* ========================================================================== */
-/* Kosztorys Szczegółowy (kolumna "Pozycja/Normy") */
-body > h1:first-of-type + hr + table thead tr th:nth-child(2),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(2) {
-    width: 38% !important;
-    min-width: 50mm;
+.material-analysis-table .category-summary-analysis td { /* Podsumowanie kategorii materiałowej */
+    background-color: #cfe2ff !important; font-weight: 500;
+    border-top: 1px dashed #9ec5fe; border-bottom: 2px solid #9ec5fe;
 }
-body > h1:first-of-type + hr + table thead tr th:nth-child(1),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(1)  { width: 6% !important; }
-body > h1:first-of-type + hr + table thead tr th:nth-child(3),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(3)  { width: 7% !important; }
-body > h1:first-of-type + hr + table thead tr th:nth-child(4),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(4)  { width: 9% !important; }
-body > h1:first-of-type + hr + table thead tr th:nth-child(5),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(5),
-body > h1:first-of-type + hr + table thead tr th:nth-child(6),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(6),
-body > h1:first-of-type + hr + table thead tr th:nth-child(7),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(7),
-body > h1:first-of-type + hr + table thead tr th:nth-child(8),
-body > h1:first-of-type + hr + table tbody tr td:nth-child(8)  { width: 10% !important; }
-
-
-/* Zestawienie Pozycji (Opis) i Oferta (Opis pozycji) */
-body > .container table thead tr th:nth-child(2),
-body > .container table tbody tr td:nth-child(2),
-body > h1 + hr + table:not(:has(th:nth-child(8))) thead tr th:nth-child(2),
-body > h1 + hr + table:not(:has(th:nth-child(8))) tbody tr td:nth-child(2) {
-    width: 50% !important;
-    min-width: 60mm;
-}
-
-/* Wykaz Materiałów - szerokości dla wydruku (bez kolumn zysku) */
-/* Kolumny to: Materiał, Kat., Ilość, j.m., Cena jedn. (Y), Wartość (Y) */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) { /* Identyfikacja tabeli Wykazu Materiałów dla klienta */
-    table-layout: auto;
-}
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(1), /* Materiał */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(1) {
-    width: 40%; /* Zwiększamy szerokość dla nazwy materiału */
-    min-width: 50mm;
-}
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(2), /* Kategoria */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(2) {
-    width: 10%; text-align: center !important; white-space: nowrap;
-}
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(3), /* Ilość */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(3),
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(5), /* Cena jedn. Y */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(5),
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(6),  /* Wartość Y */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(6) {
-    width: 15%; text-align: right !important; white-space: nowrap;
-}
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) th:nth-child(4), /* j.m. */
-table:has(thead th:contains("Cena Rynk.")):not(:has(th:contains("Cena Zakupu"))) td:nth-child(4) {
-    width: 10%; text-align: center !important; white-space: nowrap;
-}
-/* --- KONIEC SEKCJI: Dopasowanie szerokości kolumn opisowych --- */
-
-
-/* Ukrywanie elementów */
-.print-hide, .tab-container, .modal:not(#print-content-modal),
-#cost-table .col-actions,
-#fixed-action-buttons,
-#analiza:not(.print-specific-analysis-section), /* Ukrywanie zakładki Analiza na wydruku - jej zawartość jest generowana specyficznie */
-.icons-wrapper .color-picker-icon /* Ukryj ikonę wyboru koloru na wydruku */
-{ display: none !important; }
-
-.print-hide-internal { display: none !important; } /* Ukrywa elementy tylko na wydruku */
-
-.print-only { display: block !important; }
-#cost-table .suggestions-container input, #cost-table .suggestions-container .suggestions-dropdown { display: none !important; }
-#cost-table th.col-drag, #cost-table td.col-drag { display: none !important; }
-#material-summary-table th.material-summary-value-header,
-#material-summary-table td.material-summary-value,
-#material-summary-table th[data-sort-key="category"],
-#material-summary-table td:nth-child(2)
-{ display: table-cell !important; }
-/* Ukryj kolumny związane z ceną zakupu i zyskiem w tabeli #material-summary-table na standardowym wydruku */
-#material-summary-table th[data-sort-key="purchasePriceX"],
-#material-summary-table td:nth-child(6), /* Cena Zakupu (X) */
-#material-summary-table th:nth-child(7), /* Zysk/Strata Jedn. */
-#material-summary-table td:nth-child(7),
-#material-summary-table th[data-sort-key="profitValue"],
-#material-summary-table td:nth-child(9), /* Zysk/Strata Sum. */
-#material-summary-table tfoot tr:has(#material-profit-grand-total) /* Ukryj wiersz sumy zysku */
-{ display: none !important; }
-
-/* Style norm w wydruku kosztorysu */
-#cost-table .norms-display {
-    font-size: 8pt; background-color: transparent !important; border: none !important;
-    margin-top: 3px; padding: 0; color: #333; display: block !important;
-    page-break-inside: avoid;
-}
-#cost-table .norms-display ul { margin-left: 10px; list-style: disc; padding-left: 15px; }
-#cost-table .norms-display strong { font-weight: bold; }
-
-/* Style wierszy specjalnych (Dział/Poddział) */
-tr.department-row-print td, tr[data-row-type="department"] td:not(.print-hide) {
-    /* background-color: #e9ecef !important; - JS będzie zarządzał tłem */
-    font-weight: bold;
-    border-top: 2px solid #aaa !important;
-    border-bottom: 1px solid #aaa !important;
-    padding: 6px 5px;
-    /* color: #000; - JS będzie zarządzał kolorem tekstu */
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-}
-tr.subdepartment-row-print td, tr[data-row-type="subdepartment"] td:not(.print-hide) {
-    /* background-color: #f8f9fa !important; - JS będzie zarządzał tłem */
-    font-style: italic;
-    border-top: 1px dashed #ccc !important;
-    border-bottom: 1px dashed #ccc !important;
-    padding: 5px 5px 5px 15px;
-    /* color: #000; - JS będzie zarządzał kolorem tekstu */
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-}
-/* Tło dla komórek podsumowania działu może pozostać stałe lub być dostosowane przez JS */
-tr.department-summary-print td {
-    border-top: 1px dashed #ccc !important;
-    border-bottom: 2px solid #aaa !important;
-    padding: 4px 5px; font-style: italic;
-    background-color: #f0f0f0 !important; /* Można to zmienić lub usunąć, jeśli JS ma zarządzać */
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-}
-tr.department-summary-print td:first-child { text-align: right; font-weight: bold; }
-tr.department-summary-print td:last-child { text-align: right; font-weight: bold; font-style: normal !important;}
-
-tr.department-row-print td:last-child:not(.print-hide),
-tr.subdepartment-row-print td:last-child:not(.print-hide),
-tr[data-row-type="department"] td:last-child:not(.print-hide),
-tr[data-row-type="subdepartment"] td:last-child:not(.print-hide) {
-     font-style: normal !important; font-weight: bold !important; text-align: right;
-}
-tr[data-row-type="department"] .col-special-desc,
-tr[data-row-type="subdepartment"] .col-special-desc {
+.material-analysis-table .department-header-analysis td { /* Nagłówek działu w analizie materiałów */
+    background-color: #e9ecef; font-weight: bold; padding-top: 6px;
+    padding-bottom: 6px; border-top: 2px solid var(--primary-color);
     text-align: left !important;
-    padding-left: 15px !important;
 }
-tr[data-row-type="subdepartment"] .col-special-desc {
-    padding-left: 30px !important;
+.material-analysis-table .department-summary-analysis td,
+.material-analysis-table tfoot td { /* Podsumowanie działu / stopka tabeli materiałów */
+    background-color: #f8f9fa; font-style: italic;
 }
+.material-analysis-table tfoot td {
+    background-color: var(--primary-color); color: white;
+    font-weight: bold; font-style: normal;
+}
+.material-analysis-table .num-cell { text-align: right !important; white-space: nowrap; }
+.material-analysis-table .unit-cell { text-align: center !important; white-space: nowrap; }
+.material-analysis-table .summary-label { text-align: right !important; font-weight: bold; font-style: italic; }
+.material-analysis-table .summary-value { font-weight: bold; font-style: normal !important; }
+.material-analysis-table .grand-total-label { text-align: right !important; }
+.material-analysis-table .grand-total-value { font-weight: bold; }
 
-/* Wykaz materiałów - zerowe ceny */
-#material-summary-table tr.zero-price td,
-body table tr.zero-price td {
-    background-color: #ffe0e0 !important; color: #c00 !important; font-weight: normal !important;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+/* Harmonogram Robót */
+#analysis-schedule-output ol { list-style-type: decimal; padding-left: 18px; }
+#analysis-schedule-output li {
+    margin-bottom: 8px; padding-bottom: 4px;
+    border-bottom: 1px dotted #eee; font-size: 0.85em;
 }
-#material-summary-table tr.zero-price td:first-child,
-body table tr.zero-price td:first-child { font-weight: bold !important; }
-
-/* Style dla wydruku analizy */
-.analysis-print-section { page-break-inside: avoid; margin-bottom: 15mm; padding: 0; border: none; background-color: transparent !important; }
-.analysis-print-section:not(:first-child) {
-    page-break-before: always;
-}
-.analysis-print-section h2, .analysis-print-section h3 { margin-top: 0em; text-align: left; border-bottom: 1px solid #ccc; margin-bottom: 0.5em;}
-.analysis-print-section img { max-width: 100%; height: auto; display: block; margin: 10px auto; border: 1px solid #ccc; page-break-inside: avoid; box-shadow: none; }
-.analysis-print-section table { font-size: 8.5pt; box-shadow: none; border-color: #bbb; margin-top: 0.2em;}
-.analysis-print-section th, .analysis-print-section td { padding: 3px 4px; border-color: #ccc; }
-.analysis-print-section th { background-color: #f0f0f0 !important; color: #000; }
-.material-categories-legend {
-    font-size: 8pt;
-    color: #555;
-    margin-top: 8px;
-    page-break-before: avoid;
-    display: block !important; /* Upewnij się, że jest widoczna na wydruku jeśli ma klasę print-only */
+#analysis-schedule-output li:last-child { border-bottom: none; }
+#analysis-schedule-output .schedule-details {
+    color: #555; display: block; margin-top: 2px; font-size: 0.85em;
 }
 
-
-/* Strona tytułowa i Oferta - stylizacja kontenera */
-.container { width: 100%; max-width: 180mm; margin: 0 auto; padding: 0; color: #000; }
-.container:not(:first-child) {
-    page-break-before: always;
+/* ==========================================================================
+   12. SEKCJA: USTAWIENIA APLIKACJI
+   Opis: Style dla zakładki "Ustawienia", w tym dane ogólne, stawki,
+         import CSV, wersje kosztorysu i konfigurator wyglądu.
+   ========================================================================== */
+#ustawienia h2 { margin-bottom: 18px; }
+.settings-main-sections { display: flex; flex-direction: column; gap: 0; }
+.settings-section { /* Ogólny kontener dla sekcji ustawień */
+    padding: 15px; border-radius: var(--border-radius);
+    border: 1px solid var(--medium-gray); box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    margin-bottom: 18px;
 }
-.container h1 { font-size: 16pt; margin-bottom: 20px; color: #000; border-bottom: 2px solid #000; padding-bottom: 0.5em; text-align: center !important;}
-.container .section h2 { font-size: 12pt; margin-bottom: 10px; color: #000; border-bottom: 1px solid #ccc; }
-.container p { font-size: 10pt; line-height: 1.4; margin-bottom: 7px; }
-.container p strong { color: #000; font-weight: bold;}
-.container .signatures { margin-top: 25mm; }
-.container .signature-box p { margin-top: 15mm; font-size: 9pt; color: #333; }
-.container table { font-size: 9pt; box-shadow: none; border: 1px solid #aaa; margin-top: 0.2em;}
-.container table th { background-color: #e8e8e8 !important; color: #000; }
-.container table td { padding: 4px 5px; border: 1px solid #bbb;}
+.settings-section:last-child { margin-bottom: 0; }
+#general-settings-section { background-color: var(--settings-bg-general); }
+#labor-rates-settings-section { background-color: var(--settings-bg-labor); }
+#material-csv-settings-section { background-color: var(--settings-bg-csv); }
+#estimate-versions-section { background-color: var(--settings-bg-versions); }
+#style-configurator-section { background-color: var(--settings-bg-configurator); }
+.settings-section h3 {
+    margin-top: 0; margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--medium-gray);
+}
+.settings-divider { border: none; border-top: 1px solid #ddd; margin: 0 0 18px 0; }
+.settings-grid-layout { /* Układ siatki dla niektórych sekcji ustawień */
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 18px; align-items: start;
+}
+.settings-grid-layout .settings-section { margin-bottom: 0; }
+.settings-grid-layout .settings-section:last-child { margin-bottom: 0; }
 
-.page-break-before { page-break-before: always; }
+/* Ustawienia stawek robocizny */
+.specialist-rates-compact .form-group { margin-bottom: 8px; }
+.specialist-rates-compact label { font-size: 0.85em; margin-bottom: 3px; }
+.specialist-rates-compact input[type="number"] { padding: 7px 9px; font-size: 13px; }
 
-@page { size: A4 portrait; margin: 15mm; }
+/* Wersje kosztorysu */
+#estimate-versions-select {
+    width: 100%; margin-bottom: 8px; font-size: 0.9em; padding: 7px;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    background-color: #fff; height: auto;
+}
+#estimate-versions-select option { padding: 4px 7px; font-size: 0.85em; }
+#estimate-versions-select option:checked { background-color: var(--secondary-color); color: white; }
+#estimate-versions-list-container .button-group button.small-action-btn {
+    font-size: 0.85em; padding: 5px 10px;
+}
+
+/* Konfigurator Wyglądu */
+#konfigurator-stylu-content { padding-top: 12px; }
+#toggle-style-configurator-btn { font-size: 0.85em; padding: 5px 10px; }
+.style-config-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+.config-section { /* Sekcja w konfiguratorze (np. Style Ekranowe, Style Wydruku) */
+    border: 1px solid var(--medium-gray); padding: 15px;
+    border-radius: var(--border-radius); background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.config-section legend {
+    font-weight: 600; font-size: 1.05em; color: var(--primary-color);
+    padding: 0 8px; margin-left: 4px; margin-bottom: 12px;
+    display: block; width: calc(100% - 16px);
+    border-bottom: 1px solid var(--medium-gray); padding-bottom: 8px;
+}
+.config-section .form-group { margin-bottom: 10px; }
+.config-section .form-group label {
+    font-size: 0.85em; margin-bottom: 5px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.config-section .form-group input[type="color"] {
+    height: 28px; width: 55px; padding: 2px; border-radius: 3px;
+    border: 1px solid var(--medium-gray); cursor: pointer;
+}
+.config-section .form-group input[type="number"],
+.config-section .form-group select { font-size: 13px; padding: 7px 9px; }
+
+/* ==========================================================================
+   13. SEKCJA: NIESTANDARDOWE MENU KONTEKSTOWE
+   Opis: Style dla menu pojawiającego się po kliknięciu prawym przyciskiem myszy.
+   ========================================================================== */
+.custom-context-menu {
+    position: fixed; z-index: 10000; display: none; background-color: #fff;
+    border: 1px solid var(--medium-gray); border-radius: var(--border-radius);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15); min-width: 180px; padding: 4px 0;
+}
+.custom-context-menu ul { list-style: none; padding: 0; margin: 0; }
+.custom-context-menu li {
+    padding: 8px 12px; cursor: pointer; font-size: 13px;
+    color: var(--text-color); white-space: nowrap;
+}
+.custom-context-menu li:hover { background-color: var(--secondary-color); color: #fff; }
+.custom-context-menu li.disabled {
+    color: var(--dark-gray); background-color: #f8f9fa; cursor: not-allowed;
+}
+.custom-context-menu li.disabled:hover { background-color: #f8f9fa; color: var(--dark-gray); }
+.custom-context-menu hr { border: none; border-top: 1px solid var(--medium-gray); margin: 4px 0; }
+
+/* ==========================================================================
+   14. SEKCJA: POWIADOMIENIA (TOASTS)
+   Opis: Style dla małych powiadomień (np. o sukcesie, błędzie) pojawiających się na ekranie.
+   ========================================================================== */
+.notifications-container {
+    position: fixed; top: 15px; right: 15px; z-index: 10000;
+    display: flex; flex-direction: column; gap: 8px;
+    max-width: 320px; width: 90%;
+}
+.notification {
+    background-color: #fff; color: var(--text-color); padding: 10px 12px;
+    border-radius: var(--border-radius); box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+    border-left: 4px solid var(--info-color); opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.85em; line-height: 1.3;
+}
+.notification.show { opacity: 1; transform: translateX(0); }
+.notification .notification-icon { margin-right: 8px; font-size: 1.2em; line-height: 1; }
+.notification.success { border-left-color: var(--success-color); }
+.notification.success .notification-icon { color: var(--success-color); }
+.notification.error { border-left-color: var(--error-color); }
+.notification.error .notification-icon { color: var(--error-color); }
+.notification.warning { border-left-color: var(--warning-color); }
+.notification.warning .notification-icon { color: #b8860b; /* Ciemniejszy żółty dla ikony */ }
+.notification.info .notification-icon { color: var(--info-color); }
+.notification-message { flex-grow: 1; margin-right: 8px; word-break: break-word; }
+.notification-close-btn {
+    background: none; border: none; color: var(--dark-gray);
+    font-size: 1.1em; font-weight: bold; cursor: pointer;
+    padding: 0 4px; line-height: 1;
+}
+.notification-close-btn:hover { color: #000; }
+
+/* ==========================================================================
+   15. SEKCJA: STAŁY PASEK AKCJI NA DOLE EKRANU
+   Opis: Style dla paska z przyciskami akcji przyklejonego do dołu strony.
+   ========================================================================== */
+#fixed-action-buttons {
+    position: fixed; bottom: 0; width: 100%; max-width: 1400px;
+    left: 50%; transform: translateX(-50%);
+    background-color: rgba(245, 247, 250, 0.97); backdrop-filter: blur(4px);
+    padding: 8px 15px; box-shadow: 0 -2px 8px rgba(0,0,0,0.12);
+    z-index: 1000; display: flex; justify-content: center;
+    align-items: center; gap: 8px;
+    border-top: 1px solid var(--medium-gray); height: var(--action-bar-height);
+}
+#fixed-action-buttons > #scroll-to-top-btn:last-child { margin-left: auto; }
+#fixed-action-buttons button { padding: 7px 10px; font-size: 12px; }
+
+/* ==========================================================================
+   16. SEKCJA: MEDIA QUERIES (RESPONSYWNOŚĆ)
+   Opis: Style dostosowujące wygląd aplikacji do różnych rozmiarów ekranu.
+   ========================================================================== */
+@media (max-width: 1050px) {
+    .main-header-buttons { flex-wrap: wrap; justify-content: flex-start; }
+    .main-header-buttons button, .main-header-buttons select { margin-bottom: 4px; }
+}
+@media (max-width: 992px) {
+    body { padding-top: var(--dynamic-sticky-header-height, 115px); }
+    .settings-grid-layout { grid-template-columns: 1fr; }
+    .settings-grid-layout .settings-section { margin-bottom: 18px; }
+    .settings-grid-layout .settings-section:last-child { margin-bottom: 0; }
+    #sticky-header-tabs { padding: 6px 12px; }
+}
+@media (max-width: 768px) {
+    body { padding: 0 8px var(--action-bar-height) 8px; padding-top: var(--dynamic-sticky-header-height, 130px); }
+    #sticky-header-tabs { padding: 8px 8px; gap: 8px; }
+    .sticky-header-row { flex-direction: column; align-items: flex-start; }
+    .main-header-buttons { justify-content: flex-start; width: 100%; }
+    .tabs { flex-wrap: wrap; border: none; }
+    .tab { flex-basis: auto; min-width: 80px; flex-grow: 1; font-size: 12px; padding: 7px 8px;}
+    #cost-table { border: none; box-shadow: none; }
+    #cost-table thead { display: none; } /* Ukryj nagłówki tabeli na małych ekranach */
+    #cost-table tbody tr { /* Każdy wiersz jako osobny blok */
+        display: block; margin-bottom: 12px; border: 1px solid var(--medium-gray);
+        border-radius: var(--border-radius); padding: 8px; background-color: #fff;
+        box-shadow: var(--box-shadow);
+    }
+    #cost-table tbody tr[data-row-type="department"],
+    #cost-table tbody tr[data-row-type="subdepartment"] { padding: 7px 8px; }
+    #cost-table tbody td { /* Każda komórka jako osobny wiersz w bloku */
+        display: block; width: 100% !important; text-align: left !important;
+        padding: 5px 0; border: none; border-bottom: 1px dashed var(--light-gray);
+    }
+    #cost-table tbody td:last-child { border-bottom: none; }
+    #cost-table .col-lp { font-size: 1.5em; color: var(--secondary-color); float: left; margin-right: 8px; }
+    #cost-table .col-desc { font-weight: 500; color: var(--primary-color); clear: both; padding-top: 0; }
+    #cost-table .col-desc .suggestions-container input { font-size: 0.95em; padding: 7px; }
+    .suggestions-container .task-search-input[readonly] { background-color: #f9f9f9; }
+    .suggestions-container .change-task-btn { display: inline-block !important; vertical-align: middle; }
+    #cost-table .notes-icon-wrapper, #cost-table .special-row-icons-container { margin-left: auto; padding-left: 8px; display: flex !important; }
+    #cost-table .notes-preview-tooltip { display: none !important; } /* Ukryj tooltip na mobilnych, może być problematyczny */
+    #cost-table .norms-display { font-size: 0.75em; color: var(--dark-gray); margin-top: 4px; padding-left: 0; border-left: none; }
+    /* Dodawanie etykiet przed wartościami w trybie mobilnym */
+    #cost-table .col-unit::before { content: "j.m.: "; font-weight: bold; color: var(--dark-gray); margin-right: 4px; }
+    #cost-table .col-qty::before { content: "Obmiar: "; font-weight: bold; color: var(--dark-gray); margin-right: 4px; }
+    #cost-table .col-qty input { text-align: left; width: auto; display: inline-block; max-width: 90px; }
+    #cost-table .col-value::before { content: "Wartość: "; font-weight: bold; color: var(--dark-gray); margin-right: 4px; }
+    #cost-table .col-value { font-weight: bold; font-size: 1.05em; }
+    /* Ukrywanie niektórych kolumn cenowych w trybie mobilnym */
+    #cost-table .col-price-r-unit, #cost-table .col-price-m-unit, #cost-table .col-price-total { display: none !important; }
+    /* Style dla wierszy działu/poddziału w trybie mobilnym */
+    #cost-table tr[data-row-type="department"] .col-special-desc,
+    #cost-table tr[data-row-type="subdepartment"] .col-special-desc { padding-left: 0 !important; font-size: 1.05em; }
+    #cost-table tr[data-row-type="department"] .col-lp,
+    #cost-table tr[data-row-type="subdepartment"] .col-lp {
+        float: none; margin-right: 6px; font-size: 1.05em;
+        color: var(--primary-color); display: inline-block; vertical-align: middle;
+    }
+    #cost-table tr[data-row-type="department"] .special-row-input,
+    #cost-table tr[data-row-type="subdepartment"] .special-row-input {
+        display: inline-block; width: auto; vertical-align: middle;
+    }
+    #cost-table tr[data-row-type="department"] .special-row-sum,
+    #cost-table tr[data-row-type="subdepartment"] .special-row-sum {
+        text-align: right !important; font-weight: bold;
+        font-size: 1.05em; padding-top: 6px; clear: both;
+    }
+    #cost-table tr[data-row-type="department"] .col-special-desc::before,
+    #cost-table tr[data-row-type="subdepartment"] .col-special-desc::before,
+    #cost-table tr[data-row-type="department"] .special-row-sum::before,
+    #cost-table tr[data-row-type="subdepartment"] .special-row-sum::before { content: ""; } /* Usuń domyślne content dla pseudoelementów jeśli były */
+    #cost-table tfoot tr td { /* Stopka tabeli w trybie mobilnym */
+        display: flex; justify-content: space-between; padding: 8px; font-size: 1.05em;
+    }
+    /* Wykaz materiałów w trybie mobilnym */
+    #material-summary-table th, #material-summary-table td { padding: 4px 3px; font-size: 10px; }
+    #material-summary-table th[data-sort-key="name"], #material-summary-table td:nth-child(1) { min-width: 110px; }
+    /* Ukrywanie niektórych kolumn w wykazie materiałów na mobilnych */
+    #material-summary-table th:nth-child(6), #material-summary-table td:nth-child(6), /* Cena Zakupu */
+    #material-summary-table th:nth-child(7), #material-summary-table td:nth-child(7), /* Zysk Jedn. */
+    #material-summary-table th:nth-child(9), #material-summary-table td:nth-child(9)  /* Zysk Sum. */
+    { display: none !important; }
+    #material-summary-table tfoot td[colspan="7"] { colspan: 4 !important; } /* Dostosuj colspan w stopce */
+    #material-summary-table tfoot tr.print-hide-internal { display: none !important; }
+
+    /* Modale w trybie mobilnym */
+    .modal-content { width: 95%; padding: 18px; margin: 8% auto; }
+    .material-norm-header, .material-norm-group { /* Uproszczony układ norm materiałowych */
+        grid-template-columns: 1fr; gap: 6px;
+    }
+    .material-norm-header { display: none; } /* Ukryj nagłówki w modalu na mobilnych */
+    .remove-material-btn { justify-self: end; }
+    .suggestions-dropdown { width: 90%; max-width: 480px; min-height: 230px; padding: 12px; }
+    /* Pasek akcji na mobilnych */
+    #fixed-action-buttons {
+        width: 100%; left: 0; transform: none; max-width: none;
+        padding: 6px; gap: 4px; justify-content: space-around;
+        height:auto; flex-wrap:wrap;
+    }
+    #fixed-action-buttons > #scroll-to-top-btn:last-child { margin-left: 0; }
+    #fixed-action-buttons button {
+        padding: 6px 7px; font-size: 11px; flex-grow: 1; min-width: 65px;
+    }
+    /* Analiza na mobilnych */
+    .department-chart-wrapper, .labor-analysis-chart-wrapper { width: 100%; min-width: 260px; }
+    .department-chart-wrapper canvas, .labor-analysis-chart-wrapper canvas { width: 180px !important; height: 180px !important; }
+    #analysis-chart-departments-container { flex-wrap: wrap; justify-content: center; overflow-x: hidden; }
+    .department-chart-wrapper { flex: 1 1 100%; max-width: 320px; margin-left: auto; margin-right: auto; }
+    #analysis-labor-costs .flex-container { flex-direction: column; align-items: center; }
+    .labor-analysis-chart-wrapper { width: 100%; max-width: 320px; margin-bottom: 18px; }
+    .labor-analysis-table-wrapper { width: 100%; }
