@@ -1,13 +1,13 @@
-// Plik: EazyKoszt 0.4.2-script-modals-io.js
+// Plik: EazyKoszt 0.5.0-script-modals-io.js
 // Opis: Logika obsługi okien modalnych, operacji importu/eksportu danych,
 //       zarządzania szablonami, wersjami oraz interfejsem użytkownika katalogów.
-// Wersja 0.4.2: Modyfikacje związane z przeniesieniem logiki wersji do script-core.js.
+// Wersja 0.5.0: Modyfikacje związane z przeniesieniem logiki wersji do script-core.js.
 
 // ==========================================================================
 // SEKCJA 1: INICJALIZACJA MODUŁU I GŁÓWNYCH LISTENERÓW
 // ==========================================================================
 async function initModalsAndIO() {
-    console.log("Inicjalizacja modali i I/O (EazyKoszt 0.4.2-script-modals-io.js)...");
+    console.log("Inicjalizacja modali i I/O (EazyKoszt 0.5.0-script-modals-io.js)...");
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeCustomTaskModal);
     else if (customTaskModal) console.warn("Przycisk closeModalBtn (w customTaskModal) nie znaleziony.");
@@ -185,7 +185,7 @@ async function saveNotesFromModal() { // Zmieniono na async
     updatedRows[rowIndex] = { ...updatedRows[rowIndex], notes: newNotes }; // Kopia obiektu i aktualizacja notatki
 
     // Wywołaj updateModelAndRender, aby zaktualizować model i odświeżyć widok
-    await updateModelAndRender({ rows: updatedRows });
+    await updateModelAndRender({ rows: updatedRows }); // Zmieniono: teraz wywołujemy updateModelAndRender
 
     // Wizualna aktualizacja ikony notatek (będzie to zrobione przez renderCostTable, ale dla natychmiastowego feedbacku)
     // Dostęp do DOM elementu
@@ -271,7 +271,7 @@ function removeMaterialNormRow(event) { const materialGroup = event.target.close
 // ==========================================================================
 async function openMaterialSelectModal(targetNormRow) { targetMaterialInputRow = targetNormRow; if(materialSearchInput) materialSearchInput.value = ''; if(newMaterialNameInput) newMaterialNameInput.value = ''; if(newMaterialUnitInput) newMaterialUnitInput.value = ''; if(newMaterialCategoryInput) newMaterialCategoryInput.value = 'IN'; await renderMaterialSelectList(''); if (materialSelectModal) { materialSelectModal.style.display = 'block'; if(materialSearchInput) materialSearchInput.focus(); } }
 function closeMaterialSelectModal() { if(materialSelectModal) materialSelectModal.style.display = 'none'; targetMaterialInputRow = null; }
-async function renderMaterialSelectList(filterText) { if (!materialSelectList || !materialSelectNoResults) return; materialSelectList.innerHTML = ''; const lowerFilter = filterText.toLowerCase().trim(); let visibleCount = 0; const allMaterialsFromDb = await dbService.getAllItems(MATERIALS_CATALOG_STORE_NAME); const sortedMaterials = allMaterialsFromDb.sort((a, b) => a.name.localeCompare(b.name, 'pl')); sortedMaterials.forEach(material => { if (!lowerFilter || material.name.toLowerCase().includes(lowerFilter)) { const li = document.createElement('li'); li.dataset.materialId = material.id; li.dataset.name = material.name; li.dataset.unit = material.unit || 'j.m.'; li.style.cssText = 'cursor:pointer; padding:6px 10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'; const nameSpan = document.createElement('span'); nameSpan.textContent = material.name; const detailsSpan = document.createElement('span'); detailsSpan.style.cssText = 'font-size:0.85em; color:#555; text-align:right; margin-left:10px; white-space:nowrap;'; detailsSpan.textContent = `(${(typeof getMaterialCategoryFullName === 'function' ? getMaterialCategoryFullName(material.categoryCode) : material.categoryCode) || '?'}, ${formatCurrency(material.priceY || 0)} zł)`; li.appendChild(nameSpan); li.appendChild(detailsSpan); li.addEventListener('click', handleMaterialSelect); li.addEventListener('mouseenter', () => li.style.backgroundColor = '#f0f0f0'); li.addEventListener('mouseleave', () => li.style.backgroundColor = ''); materialSelectList.appendChild(li); visibleCount++; } }); materialSelectNoResults.style.display = visibleCount === 0 ? 'block' : 'none'; }
+async function renderMaterialSelectList(filterText) { if (!materialSelectList || !materialSelectNoResults) return; materialSelectList.innerHTML = ''; const lowerFilter = filterText.toLowerCase().trim(); let visibleCount = 0; const allMaterialsFromDb = await dbService.getAllItems(MATERIALS_CATALOG_STORE_NAME); const sortedMaterials = allMaterialsFromDb.sort((a, b) => a.name.localeCompare(b.name, 'pl')); sortedMaterials.forEach(material => { if (!lowerFilter || material.name.toLowerCase().includes(lowerFilter)) { const li = document.createElement('li'); li.dataset.materialId = material.id; li.dataset.name = material.name; li.dataset.unit = material.unit || 'j.m.'; li.style.cssText = 'cursor:pointer; padding:6px 10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'; const nameSpan = document.createElement('span'); nameSpan.textContent = material.name; const detailsSpan = document.createElement('span'); detailsSpan.style.cssText = 'font-size:0.85em; color:#555; text-align:right; margin-left:10px; white-space:nowrap;'; detailsSpan.textContent = `(${(typeof getMaterialCategoryFullName === 'function' ? getMaterialCategoryFullName(material.categoryCode) : material.categoryCode) || '?'}, ${material.unit || '?'}, ${formatCurrency(material.priceY || 0)} zł)`; li.appendChild(nameSpan); li.appendChild(detailsSpan); li.addEventListener('click', handleMaterialSelect); li.addEventListener('mouseenter', () => li.style.backgroundColor = '#f0f0f0'); li.addEventListener('mouseleave', () => li.style.backgroundColor = ''); materialSelectList.appendChild(li); visibleCount++; } }); materialSelectNoResults.style.display = visibleCount === 0 ? 'block' : 'none'; }
 function handleMaterialSelect(event) { const li = event.currentTarget; const materialId = li.dataset.materialId; const name = li.dataset.name; const unit = li.dataset.unit; if (targetMaterialInputRow) { const nameInput = targetMaterialInputRow.querySelector('.custom-mat-name'); const unitInput = targetMaterialInputRow.querySelector('.custom-mat-unit'); if (nameInput && unitInput) { nameInput.value = name; nameInput.dataset.materialId = materialId; nameInput.readOnly = true; unitInput.value = unit; unitInput.readOnly = true; } } closeMaterialSelectModal(); }
 async function handleAddNewMaterial() {
     const newName = newMaterialNameInput.value.trim(); const newUnit = newMaterialUnitInput.value.trim(); const newCategoryCode = newMaterialCategoryInput.value;
@@ -840,12 +840,12 @@ async function loadFullState(loadedData) {
         appState.saveState();
     }
 
-    if (modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
+    if (modalEstimateTitleInput && typeof appState !== 'undefined') modalEstimateTitleInput.value = appState.getState('estimateTitle');
     const vatDisplay = document.getElementById('modal-vat-rate-display');
-    if(vatDisplay) vatDisplay.value = appState.getState('currentVatDisplayValue');
-    if(useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
+    if(vatDisplay && typeof appState !== 'undefined') vatDisplay.value = appState.getState('currentVatDisplayValue');
+    if(useSameRateCheckbox && typeof appState !== 'undefined') useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
     const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
-    if (ogolnobudowlanyRateInput) setNumericInputValue(ogolnobudowlanyRateInput, appState.getState('workerRatesSettings').ogolnobudowlany?.rate || 0);
+    if (ogolnobudowlanyRateInput && typeof appState !== 'undefined') setNumericInputValue(ogolnobudowlanyRateInput, appState.getState('workerRatesSettings').ogolnobudowlany?.rate || 0);
     // Zmieniono: activateHierarchicalMode jest wywoływana przez updateModelAndRender
     // if (typeof activateHierarchicalMode === 'function' && typeof appState !== 'undefined') activateHierarchicalMode(appState.getState('isHierarchicalMode'));
 
@@ -956,348 +956,886 @@ function handleLoadEstimateFile(event) {
         } finally {
         }
     };
-    reader.onerror = () => { showNotification("Błąd odczytu pliku. Spróbuj ponownie.", 'error'); if (csvFileInput) csvFileInput.value = null; selectedCsvFile = null; if (loadCsvButton) loadCsvButton.disabled = true; };
+    reader.onerror = () => { showNotification("Błąd odczytu pliku. Spróbuj ponownie.", 'error'); if (loadEstimateFileInput) loadEstimateFileInput.value = null; };
     reader.readAsText(file);
 }
 function handleCsvFileLoad(event) { selectedCsvFile = event.target.files[0]; if(loadCsvButton) loadCsvButton.disabled = !selectedCsvFile; }
 async function processCsvFile() { if (!selectedCsvFile) { showNotification("Wybierz plik CSV/TXT z cenami materiałów.", 'warning'); return; } const reader = new FileReader(); reader.onload = async (e) => { const csvText = e.target.result; const lines = csvText.split(/\r\n|\n/); let updatedCount = 0, skippedCount = 0; for (const line of lines) { if (!line.trim()) { skippedCount++; continue; } const columns = line.split(/[,;\t]/); if (columns.length >= 2) { const name = columns[0].trim(); const priceString = columns[1].trim().replace(',', '.'); const price = parseFloat(priceString); if (name && !isNaN(price) && price >= 0) { const existingMaterial = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', name); if (existingMaterial) { const oldPriceY = existingMaterial.priceY; existingMaterial.priceY = price; if (existingMaterial.priceX === oldPriceY || existingMaterial.priceX === null || existingMaterial.priceX === undefined) existingMaterial.priceX = price; existingMaterial.updatedAt = new Date().toISOString(); await dbService.updateItem(MATERIALS_CATALOG_STORE_NAME, existingMaterial); updatedCount++; } else { console.log(`Materiał "${name}" z CSV nie znaleziony w katalogu. Pomijam.`); skippedCount++; } } else { console.warn(`Pominięto linię z CSV (nieprawidłowa nazwa lub cena): "${line}"`); skippedCount++; } } else { console.warn(`Pominięto linię z CSV (za mało kolumn): "${line}"`); skippedCount++; } } if (updatedCount > 0) { if (!isRestoringState && typeof appState !== 'undefined') appState.notify('materialPricesImported'); showNotification(`Zaimportowano ceny z pliku.\nZaktualizowano: ${updatedCount}\nPominięto linii: ${skippedCount}.`, 'success', 7000); } else { showNotification(`Nie zaktualizowano żadnych cen z pliku CSV. Sprawdź format pliku i nazwy materiałów.\nPominięto linii: ${skippedCount}.`, 'warning', 7000); } if (csvFileInput) csvFileInput.value = null; selectedCsvFile = null; if (loadCsvButton) loadCsvButton.disabled = true; }; reader.onerror = () => { showNotification("Błąd odczytu pliku CSV/TXT.", 'error'); if (csvFileInput) csvFileInput.value = null; selectedCsvFile = null; if (loadCsvButton) loadCsvButton.disabled = true; }; reader.readAsText(selectedCsvFile, 'UTF-8'); }
 
 // ==========================================================================
-// SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
+// SEKCJA 9: OBSŁUGA WYDRUKÓW (bez zmian)
 // ==========================================================================
-const showCustomContextMenu = (event) => {
-    event.preventDefault();
-    if (!customContextMenu) return;
-
-    const targetRow = event.target.closest('tr');
-    contextMenuTargetRow = (targetRow && costTableBody && costTableBody.contains(targetRow) && targetRow.id !== INDICATOR_ROW_ID) ? targetRow : null;
-    const isRowSelected = !!contextMenuTargetRow;
-
-    customContextMenu.querySelector('[data-action="edit"]').classList.toggle('disabled', !isRowSelected);
-    customContextMenu.querySelector('[data-action="edit-notes"]').classList.toggle('disabled', !isRowSelected);
-    customContextMenu.querySelector('[data-action="delete"]').classList.toggle('disabled', !isRowSelected);
-
-    customContextMenu.style.top = `-9999px`;
-    customContextMenu.style.left = `-9999px`;
-    customContextMenu.style.display = 'block';
-
-    const menuWidth = customContextMenu.offsetWidth;
-    const menuHeight = customContextMenu.offsetHeight;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    let topPosition = event.clientY;
-    let leftPosition = event.clientX;
-
-    if (topPosition + menuHeight > windowHeight) {
-        topPosition = windowHeight - menuHeight - 5;
-        if (topPosition < 0) topPosition = 5;
+// ==========================================================================
+// SEKCJA 9: OBSŁUGA WYDRUKÓW (bez zmian)
+// ==========================================================================
+function openPrintSelectionModal() { if(printSelectionModal) printSelectionModal.style.display = 'block'; }
+function closePrintSelectionModal() { if(printSelectionModal) printSelectionModal.style.display = 'none'; }
+function generatePrintWindow(title, combinedContent, extraCss = "") {
+    const printWindow = window.open('', '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
+    if (!printWindow) {
+        showNotification("Nie można otworzyć okna wydruku. Sprawdź, czy blokada wyskakujących okienek jest wyłączona.", 'error', 7000);
+        return;
     }
-    if (leftPosition + menuWidth > windowWidth) {
-        leftPosition = windowWidth - menuWidth - 5;
-        if (leftPosition < 0) leftPosition = 5;
-    }
-    if (topPosition < 0) topPosition = 5;
-    if (leftPosition < 0) leftPosition = 5;
+    const printDoc = printWindow.document;
+    printDoc.open();
+    printDoc.write(`<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><title>${title}</title><link rel="stylesheet" href="print-style.css" media="all"><style>${(typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.getUserPrintStylesCss) ? StyleConfiguratorModule.getUserPrintStylesCss() : ''}${extraCss}</style></head><body>${combinedContent}</body></html>`);
+    printDoc.close();
+    const printButton = printWindow.document.createElement('button');
+    printButton.textContent = 'DRUKUJ';
+    printButton.className = 'print-button-print-view'; 
+    printButton.style.cssText = `position: fixed; top: 10px; right: 10px; padding: 8px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 10000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;`;
+    printButton.onclick = () => printWindow.print();
+    printWindow.document.body.insertBefore(printButton, printWindow.document.body.firstChild);
+}
+function getCoverPageContent() { const today = new Date().toLocaleDateString('pl-PL'); const titleVal = (typeof appState !== 'undefined' ? appState.getState('estimateTitle') : 'Kosztorys'); const locationVal = (typeof appState !== 'undefined' ? appState.getState('investmentLocation') : '_'); const investorVal = (typeof appState !== 'undefined' ? appState.getState('investorInfo') : '_'); const contractorVal = (typeof appState !== 'undefined' ? appState.getState('contractorInfo') : '_'); return `<div class="container print-page"><h1>${titleVal}</h1><div class="section details" style="margin-top:30mm;"><h2>Dane Ogólne</h2><p><strong>Tytuł opracowania:</strong> ${titleVal}</p><p><strong>Miejsce inwestycji:</strong> ${locationVal}</p><p><strong>Inwestor:</strong> ${investorVal}</p><p><strong>Wykonawca:</strong> ${contractorVal}</p><p><strong>Data sporządzenia:</strong> ${today}</p></div><div class="signatures" style="margin-top:50mm;"><div style="float:left;width:40%;text-align:center;"><p>........................................</p><p>(Podpis Inwestora)</p></div><div style="float:right;width:40%;text-align:center;"><p>........................................</p><p>(Podpis Wykonawcy)</p></div><div style="clear:both;"></div></div></div>`; }
+async function getEstimateDetailContent() {
+    let tableRowsHtml = '';
+    let grandTotalVal = 0;
+    let currentDepartmentTitle = null;
+    let currentDepartmentId = null;
+    let departmentRowsBuffer = [];
+    let simpleRowCounter = 0;
 
-    customContextMenu.style.top = `${topPosition}px`;
-    customContextMenu.style.left = `${leftPosition}px`;
-};
-const hideCustomContextMenu = () => {
-    if (customContextMenu) customContextMenu.style.display = 'none';
-    contextMenuTargetRow = null;
-};
-const handleContextMenuAction = async (event) => {
-    if (!event.target.matches('#custom-context-menu li') || event.target.classList.contains('disabled')) return;
-    const action = event.target.dataset.action;
-    hideCustomContextMenu();
-    const targetDomRow = contextMenuTargetRow || lastClickedRow; // Element DOM wiersza
+    const shouldPrintNotes = document.getElementById('print-notes-detail')?.checked;
 
-    switch (action) {
-        case 'edit':
-            if (targetDomRow) {
-                if (targetDomRow.dataset.rowType === 'task' && typeof handleEditEstimateRow === 'function') await handleEditEstimateRow(targetDomRow);
-                else if (targetDomRow.dataset.rowType === 'department' || targetDomRow.dataset.rowType === 'subdepartment') {
-                    const inputField = targetDomRow.querySelector('.special-row-input');
-                    if (inputField) inputField.focus();
+    // Pobieramy dane bezpośrednio z modelu
+    const modelRows = currentEstimateModel.rows;
+    const isHierarchical = currentEstimateModel.isHierarchical;
+
+    for (const rowObject of modelRows) { // Iterujemy po obiekcie, a nie DOM
+        const rowType = rowObject.rowType;
+        const rowId = rowObject.rowId;
+        const notes = rowObject.notes || "";
+
+        // Kolorowanie wierszy dla wydruku - pobieramy z modelu
+        const rowBgColor = currentEstimateModel.departmentColors[rowId] || null;
+        let effectiveBgColor = '';
+        let effectiveTextColor = '';
+
+        // Ta logika `finalRowColor` i `finalTextColor` jest taka sama, jak w `renderCostTable` w `script-estimate.js`
+        // Aby zapewnić spójność kolorowania w wydrukach.
+        if (rowBgColor) {
+            effectiveBgColor = rowBgColor;
+            effectiveTextColor = getContrastTextColor(rowBgColor);
+        } else if (rowType === 'task') {
+            const defaultTaskBg = appState.getState('defaultTaskRowBackgroundColor');
+            if (defaultTaskBg && defaultTaskBg !== 'transparent' && defaultTaskBg !== 'inherit') {
+                effectiveBgColor = defaultTaskBg;
+                effectiveTextColor = getContrastTextColor(defaultTaskBg);
+            }
+        } else if (rowType === 'subdepartment') {
+            let parentDeptRowObject = null;
+            const currentIndex = modelRows.findIndex(r => r.rowId === rowId);
+            if (currentIndex > 0) {
+                let i = currentIndex - 1;
+                while(i >= 0) {
+                    if (modelRows[i].rowType === 'department') {
+                        parentDeptRowObject = modelRows[i];
+                        break;
+                    }
+                    i--;
                 }
             }
-            break;
-        case 'edit-notes':
-            // Zmieniono: openNotesModal przyjmuje ID wiersza, a nie DOM element
-            if (targetDomRow && typeof openNotesModal === 'function') openNotesModal(targetDomRow.dataset.rowId);
-            break;
-        case 'delete':
-            // Użyj targetDomRow do znalezienia odpowiedniego obiektu w modelu
-            if (!targetDomRow || !costTableBody || !costTableBody.contains(targetDomRow)) {
-                console.warn("handleContextMenuAction: Brak docelowego wiersza do usunięcia.");
-                return;
+            if (parentDeptRowObject && currentEstimateModel.departmentColors[parentDeptRowObject.rowId]) {
+                const parentDeptColor = currentEstimateModel.departmentColors[parentDeptRowObject.rowId];
+                let subDeptCounter = 0;
+                let j = (parentDeptRowObject ? modelRows.findIndex(r => r.rowId === parentDeptRowObject.rowId) : -1) + 1;
+                while (j < currentIndex) {
+                    if (modelRows[j].rowType === 'subdepartment') {
+                        subDeptCounter++;
+                    }
+                    j++;
+                }
+                const lightenIndex = subDeptCounter % SUBDEPARTMENT_LIGHTEN_PERCENTAGES.length;
+                const lightenPercentage = SUBDEPARTMENT_LIGHTEN_PERCENTAGES[lightenIndex];
+                effectiveBgColor = lightenHexColor(parentDeptColor, lightenPercentage);
             }
-            const targetRowId = targetDomRow.dataset.rowId;
-            const targetRowType = targetDomRow.dataset.rowType;
+            effectiveTextColor = effectiveBgColor ? getContrastTextColor(effectiveBgColor) : '';
+        }
 
-            let confirmText = "Czy na pewno chcesz usunąć ten wiersz?";
-            if (targetRowType === 'department') confirmText = "Czy na pewno chcesz usunąć ten DZIAŁ i wszystkie jego poddziały oraz pozycje?";
-            else if (targetRowType === 'subdepartment') confirmText = "Czy na pewno chcesz usunąć ten PODDZIAŁ i wszystkie jego pozycje?";
+        const styleAttr = effectiveBgColor ? `style="background-color: ${effectiveBgColor} !important; color: ${effectiveTextColor} !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"` : "";
 
-            showConfirmNotification(confirmText, async () => {
-                // Zapisz stan przed usunięciem (dla undo)
-                if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
+        let lp = '?'; // LP zostanie uzupełnione przez nową logikę
+        const domRowRef = costTableBody.querySelector(`tr[data-row-id="${rowId}"]`); // Pobierz DOM, aby odczytać LP
+        if (domRowRef) lp = domRowRef.cells[1]?.textContent || '?'; // Tymczasowo odczytujemy LP z DOM
 
-                // Znajdź indeks wiersza w modelu
-                const rowIndexToDelete = currentEstimateModel.rows.findIndex(r => r.rowId === targetRowId);
-                if (rowIndexToDelete === -1) {
-                    console.error("handleContextMenuAction: Nie znaleziono wiersza w modelu do usunięcia.");
-                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", "error");
-                    return;
-                }
+        if (!isHierarchical && rowType === 'task') {
+            simpleRowCounter++;
+            lp = `${simpleRowCounter}.`;
+        }
 
-                let updatedRows = [...currentEstimateModel.rows];
-                let deletedRowIds = [targetRowId]; // Śledź usunięte ID
+        if (rowType === 'department' && isHierarchical) {
+            if(currentDepartmentTitle !== null && departmentRowsBuffer.length > 0) {
+                // Suma działu będzie pobierana z `chapterSums`
+                const deptSum = chapterSums[currentDepartmentId] !== undefined ? formatCurrency(chapterSums[currentDepartmentId]) : '0.00';
+                tableRowsHtml += departmentRowsBuffer.join('');
+                tableRowsHtml += `<tr class="department-summary-print"><td colspan="7">PODSUMOWANIE DZIAŁU: ${currentDepartmentTitle}</td><td style="text-align:right;">${deptSum}</td></tr>`;
+                departmentRowsBuffer = [];
+            }
+            currentDepartmentTitle = rowObject.text || `Dział ${lp}`;
+            currentDepartmentId = rowId;
+            tableRowsHtml += `<tr class="department-row-print" ${styleAttr}><td colspan="7">${lp} ${currentDepartmentTitle}</td><td class="department-total-value" style="text-align:right;">${chapterSums[currentDepartmentId] !== undefined ? formatCurrency(chapterSums[currentDepartmentId]) : '0.00'}</td></tr>`;
+            if (shouldPrintNotes && notes) {
+                tableRowsHtml += `<tr><td colspan="8"><div class="print-notes" style="padding-left:15px;">Notatka do działu: ${notes.replace(/\n/g, '<br>')}</div></td></tr>`;
+            }
+        } else if (rowType === 'subdepartment' && isHierarchical) {
+            const subDeptTitle = rowObject.text || `Poddział ${lp}`;
+            tableRowsHtml += `<tr class="subdepartment-row-print" ${styleAttr}><td colspan="7" style="padding-left:15px;">${lp} ${subDeptTitle}</td><td class="subdepartment-total-value" style="text-align:right;">${chapterSums[rowId] !== undefined ? formatCurrency(chapterSums[rowId]) : '0.00'}</td></tr>`;
+            if (shouldPrintNotes && notes) {
+                tableRowsHtml += `<tr><td colspan="8"><div class="print-notes" style="padding-left:30px;">Notatka do poddziału: ${notes.replace(/\n/g, '<br>')}</div></td></tr>`;
+            }
+        } else if (rowType === 'task') {
+            const taskCatalogId = rowObject.taskCatalogId;
+            let baseTask = taskCatalogId ? await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId) : null;
 
-                if (targetRowType === 'department') {
-                    // Usuń dział i wszystkie jego dzieci z modelu
-                    const newRowsAfterDeletion = [];
-                    let inDeletionBlock = false;
-                    for (let i = 0; i < updatedRows.length; i++) {
-                        const row = updatedRows[i];
-                        if (row.rowId === targetRowId) {
-                            inDeletionBlock = true; // Rozpocznij blok usuwania
-                            // Ten wiersz zostanie pominięty
-                        } else if (inDeletionBlock && row.rowType === 'department') {
-                            inDeletionBlock = false; // Zakończ blok usuwania, jeśli natrafisz na nowy dział
-                            newRowsAfterDeletion.push(row);
-                        } else if (inDeletionBlock) {
-                            // Ten wiersz zostanie pominięty
-                            deletedRowIds.push(row.rowId);
+            const description = rowObject.localDesc || (baseTask ? baseTask.description : rowObject.description) || ''; // description z modelu jest już primary
+            const unit = rowObject.localUnit || (baseTask ? baseTask.unit : rowObject.unit) || '?';
+            const quantityVal = rowObject.quantity; // Ilość z modelu
+            const quantity = formatCurrency(quantityVal, 3);
+
+            // Musimy obliczyć ceny jednostkowe R i M, oraz wartość, bo nie są one przechowywane w modelu wiersza
+            // Pobieramy normy z rowObject lub z katalogu
+            let normRVal = rowObject.localNormR !== undefined ? rowObject.localNormR : (baseTask?.norms?.R);
+            let normsM_source_print = rowObject.localNormsM ? JSON.parse(JSON.stringify(rowObject.localNormsM)) : (baseTask?.norms?.M);
+            let workerCat = rowObject.localWorkerCategory || (baseTask?.workerCategory || 'ogolnobudowlany');
+
+            const laborRate = getLaborRateForWorkerCategory(workerCat);
+            let unitPriceR = 0;
+            if (typeof normRVal === 'number' && normRVal >= 0) unitPriceR = normRVal * laborRate;
+
+            let unitPriceM = 0;
+            const materialNormsStrings_print = [];
+            if (Array.isArray(normsM_source_print)) {
+                for (const matNorm of normsM_source_print) {
+                    let matNameForPrint, matUnitForPrint;
+                    let materialMarketPrice = 0;
+                    if (matNorm.materialId) {
+                        const matFromDb = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, matNorm.materialId);
+                        matNameForPrint = matFromDb ? matFromDb.name : `Nieznany (ID: ${matNorm.materialId})`;
+                        matUnitForPrint = matNorm.unit || (matFromDb ? matFromDb.unit : 'j.m.');
+                        materialMarketPrice = matFromDb ? (matFromDb.priceY || 0) : 0;
+                    } else if (matNorm.name) {
+                        matNameForPrint = matNorm.name;
+                        const matFromDbByName = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', matNorm.name.trim());
+                        if (matFromDbByName) {
+                            materialMarketPrice = matFromDbByName.priceY || 0;
+                            matUnitForPrint = matNorm.unit || matFromDbByName.unit || 'j.m.';
                         } else {
-                            newRowsAfterDeletion.push(row); // Dodaj wiersz do nowej listy
+                            matUnitForPrint = matNorm.unit || 'j.m.';
+                            materialMarketPrice = 0;
                         }
+                    } else { continue; }
+                    if (matNameForPrint && typeof matNorm.quantity === 'number' && matNorm.quantity > 0) {
+                        unitPriceM += matNorm.quantity * materialMarketPrice;
+                        materialNormsStrings_print.push(`${matNameForPrint}: ${matNorm.quantity.toFixed(3)} ${matUnitForPrint}`);
                     }
-                    updatedRows = newRowsAfterDeletion;
-
-                } else if (targetRowType === 'subdepartment') {
-                    // Usuń poddział i wszystkie jego zadania (do następnego poddziału/działu) z modelu
-                    const newRowsAfterDeletion = [];
-                    let inDeletionBlock = false;
-                    for (let i = 0; i < updatedRows.length; i++) {
-                        const row = updatedRows[i];
-                        if (row.rowId === targetRowId) {
-                            inDeletionBlock = true;
-                        } else if (inDeletionBlock && (row.rowType === 'subdepartment' || row.rowType === 'department')) {
-                            inDeletionBlock = false;
-                            newRowsAfterDeletion.push(row);
-                        } else if (inDeletionBlock) {
-                            deletedRowIds.push(row.rowId);
-                        } else {
-                            newRowsAfterDeletion.push(row);
-                        }
-                    }
-                    updatedRows = newRowsAfterDeletion;
-                } else { // Typ 'task'
-                    updatedRows.splice(rowIndexToDelete, 1); // Usuń tylko ten wiersz
                 }
+            }
 
-                // Usuń kolory z modelu dla usuniętych wierszy
-                const updatedDepartmentColors = { ...currentEstimateModel.departmentColors };
-                deletedRowIds.forEach(id => {
-                    if (updatedDepartmentColors[id]) {
-                        delete updatedDepartmentColors[id];
-                    }
-                });
+            const priceR = formatCurrency(unitPriceR);
+            const priceM = formatCurrency(unitPriceM);
+            const unitPriceTotal = unitPriceR + unitPriceM;
+            const priceTotal = formatCurrency(unitPriceTotal);
+            const value = formatCurrency(quantityVal * unitPriceTotal);
+            grandTotalVal += quantityVal * unitPriceTotal; // Aktualizuj sumę całkowitą
 
-                // Zaktualizuj model i wyrenderuj tabelę
-                await updateModelAndRender({
-                    rows: updatedRows,
-                    departmentColors: updatedDepartmentColors
-                });
+            let normsTextR_print = `<strong>R (${getWorkerCategoryName(workerCat)}):</strong> -`;
+            if (typeof normRVal === 'number' && normRVal >= 0) {
+                normsTextR_print = `<strong>R (${getWorkerCategoryName(workerCat)}):</strong> ${normRVal.toFixed(3)} ${unit || 'j.m.'}`;
+            }
 
-                // Zaktualizuj lastClickedRow po usunięciu
-                if (lastClickedRow === targetDomRow) {
-                    // Próba ustawienia lastClickedRow na poprzedni lub następny wiersz DOM
-                    let newLastClickedRow = targetDomRow.previousElementSibling || targetDomRow.nextElementSibling;
-                    // Jeśli nowy lastClickedRow jest wskaźnikiem insertIndicator, przesuń dalej
-                    const indicatorId = typeof INDICATOR_ROW_ID !== 'undefined' ? INDICATOR_ROW_ID : 'temp-insert-indicator';
-                    if (newLastClickedRow && newLastClickedRow.id === indicatorId) {
-                        newLastClickedRow = newLastClickedRow.previousElementSibling || newLastClickedRow.nextElementSibling;
-                    }
-                    if (lastClickedRow) lastClickedRow.classList.remove('last-clicked-row-highlight'); // Usuń podświetlenie z starego
-                    lastClickedRow = newLastClickedRow;
-                    if (lastClickedRow) lastClickedRow.classList.add('last-clicked-row-highlight');
-                }
-                // lastClickedRow i saveDepartmentTemplateBtn są obsługiwane przez renderCostTable
-                // i event listener 'click' na wierszach
+            let finalNormsText_print = normsTextR_print;
+            if (materialNormsStrings_print.length > 0) {
+                finalNormsText_print += `<br><strong>M:</strong> ${materialNormsStrings_print.join('<br>   ')}`;
+            } else {
+                finalNormsText_print += `<br><strong>M:</strong> -`;
+            }
+            const showNorms_print = (typeof normRVal === 'number' && normRVal > 0) || (materialNormsStrings_print.length > 0);
+            const normsHtml = showNorms_print ? `<div class="norms-display">${finalNormsText_print}</div>` : "";
 
-                showNotification("Wiersz(e) usunięte.", "success");
-            });
-            break;
-        case 'save-version': if (typeof _internalSaveCurrentEstimateAsVersion === 'function') await _internalSaveCurrentEstimateAsVersion(false); break;
-        case 'save-estimate': if (typeof saveEstimateToFile === 'function') await saveEstimateToFile(); break;
-        case 'go-to-settings': activateTab('ustawienia'); break;
-        case 'print': if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal(); break;
+            const taskNotesHtml = (shouldPrintNotes && notes) ? `<div class="print-notes">${notes.replace(/\n/g, '<br>')}</div>` : "";
+
+            const rowContent = `<tr ${styleAttr}><td>${lp}</td><td>${description}${normsHtml}${taskNotesHtml}</td><td style="text-align:center;">${unit}</td><td style="text-align:right;">${quantity}</td><td style="text-align:right;">${priceR}</td><td style="text-align:right;">${priceM}</td><td style="text-align:right;">${priceTotal}</td><td style="text-align:right;">${value}</td></tr>`;
+            if (isHierarchical) departmentRowsBuffer.push(rowContent);
+            else tableRowsHtml += rowContent;
+        }
     }
-};
-// ==========================================================================
-// SEKCIA 10: GŁÓWNA INICJALIZACJA APLIKACJI (initApp)
-// ==========================================================================
-async function initApp() {
-    console.log(`%cInicjalizacja ${APP_VERSION}...`, "color: blue; font-weight: bold;");
-    // departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel
 
-    try { // <-- TUTAJ ZACZYNA SIĘ BLOK TRY DLA CAŁEJ FUNKCJI
-        costTableBody = document.getElementById('cost-table-body'); if (!costTableBody) throw new Error("Krytyczny błąd: Element 'cost-table-body' nie został znaleziony w DOM.");
-        grandTotalElement = document.getElementById('grand-total'); if (!grandTotalElement) throw new Error("Krytyczny błąd: Element 'grand-total' nie został znaleziony w DOM.");
-        notificationsContainer = document.getElementById('notifications-container'); if (!notificationsContainer) console.warn("Element 'notifications-container' nie znaleziony. Powiadomienia będą używać alert().");
-        addRowBtn = document.getElementById('add-row-btn'); addDepartmentBtn = document.getElementById('add-department-btn'); addSubDepartmentBtn = document.getElementById('add-subdepartment-btn'); clearAllBtn = document.getElementById('clear-all-btn'); saveEstimateVersionBtn = document.getElementById('save-estimate-version-btn'); previewEstimateDetailBtn = document.getElementById('preview-estimate-detail-btn'); materialSummaryBody = document.getElementById('material-summary-body'); materialGrandTotalElement = document.getElementById('material-grand-total'); materialProfitGrandTotalElement = document.getElementById('material-profit-grand-total'); materialSummaryTable = document.getElementById('material-summary-table'); customTaskModal = document.getElementById('custom-task-modal'); if (!customTaskModal) throw new Error("Krytyczny błąd: Modal 'custom-task-modal' nie znaleziony."); closeModalBtn = customTaskModal.querySelector('.close-modal-btn[data-modal-id="custom-task-modal"]'); saveModalBtn = document.getElementById('save-custom-task-btn'); cancelCustomTaskBtn = document.getElementById('cancel-custom-task-btn'); addMaterialNormBtn = document.getElementById('add-material-norm-btn'); customTaskMaterialsList = document.getElementById('custom-task-materials-list'); modalTitle = customTaskModal.querySelector('h2'); originalModalTitle = modalTitle ? modalTitle.textContent : "Zdefiniuj/Edytuj Pozycję Katalogową"; modalDescInput = document.getElementById('custom-task-desc'); modalUnitInput = document.getElementById('custom-task-unit'); modalNormRInput = document.getElementById('custom-task-norm-r'); modalWorkerCategorySelect = document.getElementById('custom-task-worker-category'); modalMaterialsSection = customTaskModal.querySelector('#modal-materials-section'); modalQuantityDiv = document.createElement('div'); modalQuantityDiv.classList.add('form-group'); modalQuantityDiv.innerHTML = `<label for="modal-task-quantity">Obmiar dla tej pozycji:</label><input type="text" id="modal-task-quantity" value="1,000">`; modalQuantityInput = modalQuantityDiv.querySelector('#modal-task-quantity'); materialSelectModal = document.getElementById('material-select-modal'); if (!materialSelectModal) throw new Error("Krytyczny błąd: Modal 'material-select-modal' nie znaleziony."); closeMaterialModalBtn = materialSelectModal.querySelector('.close-modal-btn[data-modal-id="material-select-modal"]'); materialSearchInput = document.getElementById('material-search-input'); materialSelectList = document.getElementById('material-select-list'); materialSelectNoResults = document.getElementById('material-select-no-results'); newMaterialNameInput = document.getElementById('new-material-name-input'); newMaterialUnitInput = document.getElementById('new-material-unit-input'); newMaterialCategoryInput = document.getElementById('new-material-category-input'); addNewMaterialBtn = document.getElementById('add-new-material-btn'); cancelMaterialSelectBtn = document.getElementById('cancel-material-select-btn'); csvFileInput = document.getElementById('csv-file-input'); loadCsvButton = document.getElementById('load-csv-button'); saveEstimateBtn = document.getElementById('save-estimate-btn'); loadEstimateBtn = document.getElementById('load-estimate-btn'); loadEstimateFileInput = document.getElementById('load-estimate-file-input'); commonUnitsDatalist = document.getElementById('commonUnitsData'); undoBtn = document.getElementById('undo-btn'); redoBtn = document.getElementById('redo-btn'); fixedActionButtons = document.getElementById('fixed-action-buttons'); scrollToTopBtn = document.getElementById('scroll-to-top-btn'); useSameRateCheckbox = document.getElementById('use-same-rate-for-all'); specialistRatesContainer = document.getElementById('specialist-rates-container'); openPrintSelectionBtn = document.getElementById('open-print-selection-btn'); printSelectionModal = document.getElementById('print-selection-modal'); if (!printSelectionModal) throw new Error("Krytyczny błąd: Modal 'print-selection-modal' nie znaleziony."); closePrintSelectionModalBtn = printSelectionModal.querySelector('.close-modal-btn[data-modal-id="print-selection-modal"]'); generateSelectedPrintsBtn = document.getElementById('generate-selected-prints-btn'); cancelPrintSelectionBtn = document.getElementById('cancel-print-selection-btn'); printOptionsContainer = document.getElementById('print-options-container'); toggleStyleConfiguratorBtn = document.getElementById('toggle-style-configurator-btn'); konfiguratorStyluContent = document.getElementById('konfigurator-stylu-content'); editEstimateDetailsBtn = document.getElementById('edit-estimate-details-btn'); estimateDetailsModal = document.getElementById('edit-estimate-details-modal'); if (!estimateDetailsModal) throw new Error("Krytyczny błąd: Modal 'edit-estimate-details-modal' nie znaleziony."); saveEstimateDetailsModalBtn = document.getElementById('save-estimate-details-modal-btn'); cancelEstimateDetailsModalBtn = document.getElementById('cancel-estimate-details-modal-btn'); modalEstimateTitleInput = document.getElementById('modal-estimate-title'); modalInvestmentLocationInput = document.getElementById('modal-investment-location'); modalInvestorInfoInput = document.getElementById('modal-investor-info'); modalContractorInfoInput = document.getElementById('modal-contractor-info'); modalVatRateSelect = document.getElementById('modal-vat-rate'); estimateVersionsSelect = document.getElementById('estimate-versions-select'); loadSelectedVersionBtn = document.getElementById('load-selected-version-btn'); deleteSelectedVersionBtn = document.getElementById('delete-selected-version-btn'); customContextMenu = document.getElementById('custom-context-menu'); saveDepartmentTemplateBtn = document.getElementById('save-department-as-template-btn'); saveEstimateTemplateBtn = document.getElementById('save-estimate-as-template-btn'); openTemplatesModalBtn = document.getElementById('open-templates-modal-btn'); templatesModal = document.getElementById('templates-modal'); if(!templatesModal) throw new Error("Krytyczny błąd: Modal 'templates-modal' nie znaleziony."); closeTemplatesModalBtn = document.getElementById('close-templates-modal-btn'); templateSelect = document.getElementById('template-select'); insertTemplateBtn = document.getElementById('insert-template-btn'); deleteTemplateBtn = document.getElementById('delete-template-btn'); branchSelectDropdown = document.getElementById('global-branch-filter');
-        tasksCatalogSearch = document.getElementById('tasks-catalog-search'); tasksCatalogListContainer = document.getElementById('tasks-catalog-list-container'); addNewTaskToCatalogBtn = document.getElementById('add-new-task-to-catalog-btn');
-        materialsCatalogSearch = document.getElementById('materials-catalog-search'); materialsCatalogListContainer = document.getElementById('materials-catalog-list-container'); addNewMaterialToCatalogBtn = document.getElementById('add-new-material-to-catalog-btn'); notesModal = document.getElementById('notes-modal'); if (!notesModal) throw new Error("Krytyczny błąd: Modal 'notes-modal' nie znaleziony."); notesModalTextarea = document.getElementById('notes-modal-textarea'); notesModalItemDesc = document.getElementById('notes-modal-item-desc'); saveNotesModalBtn = document.getElementById('save-notes-modal-btn'); cancelNotesModalBtn = document.getElementById('cancel-notes-modal-btn'); closeNotesModalXBtn = notesModal.querySelector('.close-modal-btn[data-modal-id="notes-modal"]');
-        confirmNotificationModal = document.getElementById('confirm-notification-modal');
-        if (confirmNotificationModal) {
-            confirmNotificationTitle = document.getElementById('confirm-notification-title');
-            confirmNotificationMessage = document.getElementById('confirm-notification-message');
-            confirmNotificationOkBtn = document.getElementById('confirm-notification-ok-btn');
-            confirmNotificationCancelBtn = document.getElementById('confirm-notification-cancel-btn');
-            confirmNotificationCloseBtnX = confirmNotificationModal.querySelector('.close-modal-btn[data-modal-id="confirm-notification-modal"]');
+    if (isHierarchical && currentDepartmentTitle !== null && departmentRowsBuffer.length > 0) {
+        const deptSum = chapterSums[currentDepartmentId] !== undefined ? formatCurrency(chapterSums[currentDepartmentId]) : '0.00';
+        tableRowsHtml += departmentRowsBuffer.join('');
+        tableRowsHtml += `<tr class="department-summary-print"><td colspan="7">PODSUMOWANIE DZIAŁU: ${currentDepartmentTitle}</td><td style="text-align:right;">${deptSum}</td></tr>`;
+    } else if (isHierarchical && departmentRowsBuffer.length > 0) { // Jeśli były jakieś poddziały/zadania bez nadrzędnego działu
+        tableRowsHtml += departmentRowsBuffer.join('');
+    }
 
-            if(confirmNotificationOkBtn) confirmNotificationOkBtn.addEventListener('click', () => { if (currentConfirmCallback) currentConfirmCallback(); closeConfirmNotificationModal(); });
-            if(confirmNotificationCancelBtn) confirmNotificationCancelBtn.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
-            if(confirmNotificationCloseBtnX) confirmNotificationCloseBtnX.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
+    return `<div class="print-page"><h1>Kosztorys Szczegółowy</h1><hr><table><thead><tr><th>L.p.</th><th>Pozycja/Normy/Notatki</th><th style="text-align:center;">j.m.</th><th style="text-align:right;">Obmiar</th><th style="text-align:right;">Cena jedn. R</th><th style="text-align:right;">Cena jedn. M</th><th style="text-align:right;">Cena jedn.</th><th style="text-align:right;">Wartość</th></tr></thead><tbody>${tableRowsHtml}</tbody><tfoot><tr><td colspan="7" style="text-align:right;font-weight:bold;">SUMA NETTO:</td><td style="text-align:right;font-weight:bold;">${formatCurrency(grandTotalVal)}</td></tr></tfoot></table></div>`;
+}
+async function getEstimatePositionsContent() {
+    let tableRowsHtml = '';
+    let grandTotalVal = 0;
+    let currentDepartmentTitle = null;
+    let currentDepartmentId = null;
+    let departmentRowsBuffer = [];
+    let simpleRowCounter = 0;
+
+    // Pobieramy dane bezpośrednio z modelu
+    const modelRows = currentEstimateModel.rows;
+    const isHierarchical = currentEstimateModel.isHierarchical;
+
+    for(const rowObject of modelRows){ // Iterujemy po obiekcie, a nie DOM
+        const rowType = rowObject.rowType;
+        const rowId = rowObject.rowId;
+
+        // Kolorowanie wierszy dla wydruku (podobna logika jak w getEstimateDetailContent)
+        const rowBgColor = currentEstimateModel.departmentColors[rowId] || null;
+        let effectiveBgColor = '';
+        let effectiveTextColor = '';
+        if (rowBgColor) {
+            effectiveBgColor = rowBgColor;
+            effectiveTextColor = getContrastTextColor(rowBgColor);
+        } else if (rowType === 'task') {
+            const defaultTaskBg = appState.getState('defaultTaskRowBackgroundColor');
+            if (defaultTaskBg && defaultTaskBg !== 'transparent' && defaultTaskBg !== 'inherit') {
+                effectiveBgColor = defaultTaskBg;
+                effectiveTextColor = getContrastTextColor(defaultTaskBg);
+            }
+        } else if (rowType === 'subdepartment') {
+            let parentDeptRowObject = null;
+            const currentIndex = modelRows.findIndex(r => r.rowId === rowId);
+            if (currentIndex > 0) {
+                let i = currentIndex - 1;
+                while(i >= 0) {
+                    if (modelRows[i].rowType === 'department') {
+                        parentDeptRowObject = modelRows[i];
+                        break;
+                    }
+                    i--;
+                }
+            }
+            if (parentDeptRowObject && currentEstimateModel.departmentColors[parentDeptRowObject.rowId]) {
+                const parentDeptColor = currentEstimateModel.departmentColors[parentDeptRowObject.rowId];
+                let subDeptCounter = 0;
+                let j = (parentDeptRowObject ? modelRows.findIndex(r => r.rowId === parentDeptRowObject.rowId) : -1) + 1;
+                while (j < currentIndex) {
+                    if (modelRows[j].rowType === 'subdepartment') {
+                        subDeptCounter++;
+                    }
+                    j++;
+                }
+                const lightenIndex = subDeptCounter % SUBDEPARTMENT_LIGHTEN_PERCENTAGES.length;
+                const lightenPercentage = SUBDEPARTMENT_LIGHTEN_PERCENTAGES[lightenIndex];
+                effectiveBgColor = lightenHexColor(parentDeptColor, lightenPercentage);
+            }
+            effectiveTextColor = effectiveBgColor ? getContrastTextColor(effectiveBgColor) : '';
+        }
+        const styleAttr = effectiveBgColor ? `style="background-color: ${effectiveBgColor} !important; color: ${effectiveTextColor} !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"` : "";
+
+        let lp = '?';
+        const domRowRef = costTableBody.querySelector(`tr[data-row-id="${rowId}"]`);
+        if (domRowRef) lp = domRowRef.cells[1]?.textContent || '?';
+
+        if (!isHierarchical && rowType === 'task') {
+            simpleRowCounter++;
+            lp = `${simpleRowCounter}.`;
+        }
+
+        if (rowType === 'department' && isHierarchical) {
+            if(currentDepartmentTitle !== null && departmentRowsBuffer.length > 0) {
+                tableRowsHtml += departmentRowsBuffer.join('');
+                departmentRowsBuffer = [];
+            }
+            currentDepartmentTitle = rowObject.text || `Dział ${lp}`;
+            currentDepartmentId = rowId;
+            tableRowsHtml += `<tr class="department-row-print" ${styleAttr}><td colspan="4">${lp} ${currentDepartmentTitle}</td><td class="department-total-value" style="text-align:right;">${chapterSums[currentDepartmentId] !== undefined ? formatCurrency(chapterSums[currentDepartmentId]) : '0.00'}</td></tr>`;
+        } else if (rowType === 'subdepartment' && isHierarchical) {
+            const subDeptTitle = rowObject.text || `Poddział ${lp}`;
+            tableRowsHtml += `<tr class="subdepartment-row-print" ${styleAttr}><td colspan="4" style="padding-left:15px;">${lp} ${subDeptTitle}</td><td class="subdepartment-total-value" style="text-align:right;">${chapterSums[rowId] !== undefined ? formatCurrency(chapterSums[rowId]) : '0.00'}</td></tr>`;
+        } else if (rowType === 'task') {
+            const taskCatalogId = rowObject.taskCatalogId;
+            let baseTaskDesc = "";
+            if (taskCatalogId) {
+                const task = await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId);
+                if(task) baseTaskDesc = task.description;
+            }
+            const description = rowObject.localDesc || baseTaskDesc || rowObject.description || 'Brak opisu';
+            const unit = rowObject.localUnit || (taskCatalogId ? (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.unit : rowObject.unit) || '?';
+            const quantityVal = rowObject.quantity; // Ilość z modelu
+            const quantity = formatCurrency(quantityVal, 3);
+
+            // Oblicz wartość na podstawie modelu
+            let taskValue = 0;
+            let normRVal = rowObject.localNormR !== undefined ? rowObject.localNormR : (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.norms?.R;
+            let normsM_source_print = rowObject.localNormsM ? JSON.parse(JSON.stringify(rowObject.localNormsM)) : (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.norms?.M;
+            let workerCat = rowObject.localWorkerCategory || (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.workerCategory || 'ogolnobudowlany';
+
+            const laborRate = getLaborRateForWorkerCategory(workerCat);
+            let unitPriceR = 0;
+            if (typeof normRVal === 'number' && normRVal >= 0) unitPriceR = normRVal * laborRate;
+            let unitPriceM = 0;
+            if (Array.isArray(normsM_source_print)) {
+                for (const matNorm of normsM_source_print) {
+                    let materialMarketPrice = 0;
+                    if (matNorm.materialId) {
+                        const matFromDb = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, matNorm.materialId);
+                        materialMarketPrice = matFromDb ? (matFromDb.priceY || 0) : 0;
+                    } else if (matNorm.name) {
+                        const matFromDbByName = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', matNorm.name.trim());
+                        materialMarketPrice = matFromDbByName ? (matFromDbByName.priceY || 0) : 0;
+                    }
+                    if (typeof matNorm.quantity === 'number' && matNorm.quantity > 0) {
+                        unitPriceM += matNorm.quantity * materialMarketPrice;
+                    }
+                }
+            }
+            taskValue = quantityVal * (unitPriceR + unitPriceM);
+            const value = formatCurrency(taskValue);
+            grandTotalVal += taskValue;
+
+            const rowContent = `<tr ${styleAttr}><td>${lp}</td><td>${description}</td><td style="text-align:center;">${unit}</td><td style="text-align:right;">${quantity}</td><td style="text-align:right;">${value}</td></tr>`;
+            if (isHierarchical) departmentRowsBuffer.push(rowContent);
+            else tableRowsHtml += rowContent;
+        }
+    }
+
+    if (isHierarchical && currentDepartmentTitle !== null && departmentRowsBuffer.length > 0) {
+        tableRowsHtml += departmentRowsBuffer.join('');
+    }
+    return `<div class="print-page"><h1>Zestawienie Pozycji</h1><hr><table><thead><tr><th>L.p.</th><th>Opis</th><th style="text-align:center;">j.m.</th><th style="text-align:right;">Obmiar</th><th style="text-align:right;">Wartość</th></tr></thead><tbody>${tableRowsHtml}</tbody><tfoot><tr><td colspan="4" style="text-align:right;font-weight:bold;">SUMA NETTO:</td><td style="text-align:right;font-weight:bold;">${formatCurrency(grandTotalVal)}</td></tr></tfoot></table></div>`;
+}
+async function getOfferContent() {
+    let positionsHtml = '';
+    let grandTotalVal = 0;
+    let simpleRowCounter = 0;
+
+    // Pobieramy dane bezpośrednio z modelu
+    const modelRows = currentEstimateModel.rows;
+    const isHierarchical = currentEstimateModel.isHierarchical;
+
+    for(const rowObject of modelRows){ // Iterujemy po obiekcie, a nie DOM
+        const rowType = rowObject.rowType;
+        const rowId = rowObject.rowId;
+
+        // Kolorowanie wierszy dla wydruku (podobna logika jak w getEstimateDetailContent)
+        const rowBgColor = currentEstimateModel.departmentColors[rowId] || null;
+        let effectiveBgColor = '';
+        let effectiveTextColor = '';
+        if (rowBgColor) {
+            effectiveBgColor = rowBgColor;
+            effectiveTextColor = getContrastTextColor(rowBgColor);
+        } else if (rowType === 'task') {
+            const defaultTaskBg = appState.getState('defaultTaskRowBackgroundColor');
+            if (defaultTaskBg && defaultTaskBg !== 'transparent' && defaultTaskBg !== 'inherit') {
+                effectiveBgColor = defaultTaskBg;
+                effectiveTextColor = getContrastTextColor(defaultTaskBg);
+            }
+        } else if (rowType === 'subdepartment') {
+            let parentDeptRowObject = null;
+            const currentIndex = modelRows.findIndex(r => r.rowId === rowId);
+            if (currentIndex > 0) {
+                let i = currentIndex - 1;
+                while(i >= 0) {
+                    if (modelRows[i].rowType === 'department') {
+                        parentDeptRowObject = modelRows[i];
+                        break;
+                    }
+                    i--;
+                }
+            }
+            if (parentDeptRowObject && currentEstimateModel.departmentColors[parentDeptRowObject.rowId]) {
+                const parentDeptColor = currentEstimateModel.departmentColors[parentDeptRowObject.rowId];
+                let subDeptCounter = 0;
+                let j = (parentDeptRowObject ? modelRows.findIndex(r => r.rowId === parentDeptRowObject.rowId) : -1) + 1;
+                while (j < currentIndex) {
+                    if (modelRows[j].rowType === 'subdepartment') {
+                        subDeptCounter++;
+                    }
+                    j++;
+                }
+                const lightenIndex = subDeptCounter % SUBDEPARTMENT_LIGHTEN_PERCENTAGES.length;
+                const lightenPercentage = SUBDEPARTMENT_LIGHTEN_PERCENTAGES[lightenIndex];
+                effectiveBgColor = lightenHexColor(parentDeptColor, lightenPercentage);
+            }
+            effectiveTextColor = effectiveBgColor ? getContrastTextColor(effectiveBgColor) : '';
+        }
+        const styleAttr = effectiveBgColor ? `style="background-color: ${effectiveBgColor} !important; color: ${effectiveTextColor} !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"` : "";
+
+        let lp = '?';
+        const domRowRef = costTableBody.querySelector(`tr[data-row-id="${rowId}"]`);
+        if (domRowRef) lp = domRowRef.cells[1]?.textContent || '?';
+
+        if (!isHierarchical && rowType === 'task') {
+            simpleRowCounter++;
+            lp = `${simpleRowCounter}.`;
+        }
+
+        if (rowType === 'department' && isHierarchical) {
+            const deptTitle = rowObject.text || `Dział ${lp}`;
+            positionsHtml += `<tr class="department-row-print" ${styleAttr}><td colspan="4">${lp} ${deptTitle}</td><td class="department-total-value" style="text-align:right;">${chapterSums[rowId] !== undefined ? formatCurrency(chapterSums[rowId]) : '0.00'}</td></tr>`;
+        } else if (rowType === 'subdepartment' && isHierarchical) {
+            const subDeptTitle = rowObject.text || `Poddział ${lp}`;
+            positionsHtml += `<tr class="subdepartment-row-print" ${styleAttr}><td colspan="4" style="padding-left:15px;">${lp} ${subDeptTitle}</td><td class="subdepartment-total-value" style="text-align:right;">${chapterSums[rowId] !== undefined ? formatCurrency(chapterSums[rowId]) : '0.00'}</td></tr>`;
+        } else if (rowType === 'task') {
+            const taskCatalogId = rowObject.taskCatalogId;
+            let baseTaskDesc = "";
+            if (taskCatalogId) {
+                const task = await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId);
+                if(task) baseTaskDesc = task.description;
+            }
+            const description = rowObject.localDesc || baseTaskDesc || rowObject.description || '';
+            const unit = rowObject.localUnit || (taskCatalogId ? (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.unit : rowObject.unit) || '?';
+            const quantityVal = rowObject.quantity; // Ilość z modelu
+            const quantity = formatCurrency(quantityVal, 3);
+
+            // Oblicz wartość na podstawie modelu
+            let taskValue = 0;
+            let normRVal = rowObject.localNormR !== undefined ? rowObject.localNormR : (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.norms?.R;
+            let normsM_source_print = rowObject.localNormsM ? JSON.parse(JSON.stringify(rowObject.localNormsM)) : (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.norms?.M;
+            let workerCat = rowObject.localWorkerCategory || (await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskCatalogId))?.workerCategory || 'ogolnobudowlany';
+
+            const laborRate = getLaborRateForWorkerCategory(workerCat);
+            let unitPriceR = 0;
+            if (typeof normRVal === 'number' && normRVal >= 0) unitPriceR = normRVal * laborRate;
+            let unitPriceM = 0;
+            if (Array.isArray(normsM_source_print)) {
+                for (const matNorm of normsM_source_print) {
+                    let materialMarketPrice = 0;
+                    if (matNorm.materialId) {
+                        const matFromDb = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, matNorm.materialId);
+                        materialMarketPrice = matFromDb ? (matFromDb.priceY || 0) : 0;
+                    } else if (matNorm.name) {
+                        const matFromDbByName = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', matNorm.name.trim());
+                        materialMarketPrice = matFromDbByName ? (matFromDbByName.priceY || 0) : 0;
+                    }
+                    if (typeof matNorm.quantity === 'number' && matNorm.quantity > 0) {
+                        unitPriceM += matNorm.quantity * materialMarketPrice;
+                    }
+                }
+            }
+            taskValue = quantityVal * (unitPriceR + unitPriceM);
+            const value = formatCurrency(taskValue);
+            grandTotalVal += taskValue;
+
+            positionsHtml += `<tr ${styleAttr}><td>${lp}</td><td>${description}</td><td style="text-align:center;">${unit}</td><td style="text-align:right;">${quantity}</td><td style="text-align:right;">${value}</td></tr>`;
+        }
+    }
+
+    const netTotal = grandTotalVal;
+    const currentVatSetting = typeof appState !== 'undefined' ? appState.getState('vatRate') : '23';
+    const currentVatRateVal = currentVatSetting === "zw" ? 0 : (parseInt(currentVatSetting, 10) || 0);
+    const vatAmount = netTotal * (currentVatRateVal / 100);
+    const grossTotal = netTotal + vatAmount;
+
+    const netTotalWords = typeof liczbaSlownie === 'function' ? liczbaSlownie(netTotal) : '';
+    const grossTotalWords = typeof liczbaSlownie === 'function' ? liczbaSlownie(grossTotal) : '';
+
+    const today = new Date().toLocaleDateString('pl-PL');
+    const titleVal = (typeof appState !== 'undefined' ? appState.getState('estimateTitle') : 'Kosztorys') || 'Prace Budowlano-Remontowe';
+    const locationVal = (typeof appState !== 'undefined' ? appState.getState('investmentLocation') : '_');
+    const investorVal = (typeof appState !== 'undefined' ? appState.getState('investorInfo') : '_');
+    const contractorVal = (typeof appState !== 'undefined' ? appState.getState('contractorInfo') : '_');
+    const vatDisplayString = (typeof appState !== 'undefined' ? appState.getState('currentVatDisplayValue') : '23') + (currentVatSetting === "zw" ? "" : "%");
+
+    return `<div class="container print-page"><h1>Oferta Kosztorysowa: ${titleVal}</h1><div class="section details"><h2>Dane Ogólne</h2><p><strong>Miejsce inwestycji:</strong> ${locationVal}</p><p><strong>Inwestor:</strong> ${investorVal}</p><p><strong>Wykonawca:</strong> ${contractorVal}</p><p><strong>Data oferty:</strong> ${today}</p></div><h2>Zestawienie Prac</h2><table><thead><tr><th>L.p.</th><th>Opis pozycji</th><th style="text-align:center;">j.m.</th><th style="text-align:right;">Obmiar</th><th style="text-align:right;">Wartość Netto (zł)</th></tr></thead><tbody>${positionsHtml}</tbody></table><div class="section summary" style="margin-top: 20px;"><h2>Podsumowanie Wartości</h2><p><strong>Wartość prac netto:</strong> ${formatCurrency(netTotal)} zł</p><p><i>Słownie netto:</i> ${netTotalWords}</p><p><strong>Podatek VAT (${vatDisplayString}):</strong> ${formatCurrency(vatAmount)} zł</p><p><strong>Wartość prac brutto:</strong> ${formatCurrency(grossTotal)} zł</p><p><i>Słownie brutto:</i> ${grossTotalWords}</p></div><div class="section terms" style="margin-top: 20px;"><p><strong>Warunki oferty:</strong> [ miejsce na warunki ]</p></div><div class="signatures" style="margin-top:30mm;"><div class="signature-box" style="float:right;width:40%;text-align:center;"><p>........................................</p><p>(Wykonawca)</p></div><div style="clear:both;"></div></div></div>`;
+}
+async function getMaterialListContent(forProfitReport = false) {
+    const materialMap = {};
+
+    // Pobieramy dane bezpośrednio z modelu
+    const allTaskRowsInModel = currentEstimateModel.rows.filter(r => r.rowType === 'task');
+
+    for(const rowObject of allTaskRowsInModel){ // Iterujemy po obiekcie, a nie DOM
+        const quantity = rowObject.quantity; // Ilość z modelu
+        let normsM_source = null;
+
+        if (rowObject.localNormsM) {
+            normsM_source = JSON.parse(JSON.stringify(rowObject.localNormsM));
+        } else if (rowObject.taskCatalogId) {
+            const task = await dbService.getItem(TASKS_CATALOG_STORE_NAME, rowObject.taskCatalogId);
+            normsM_source = task?.norms?.M ? JSON.parse(JSON.stringify(task.norms.M)) : null;
         } else {
-            console.warn("Modal potwierdzenia ('confirm-notification-modal') nie znaleziony.");
-        }
-        console.log("Wszystkie elementy DOM przypisane.");
-
-        const fillBranchSelectors = () => { const selectors = [branchSelectDropdown, document.getElementById('modal-task-branch-select')]; if (typeof BRANCHES === 'undefined') { console.error("Zmienna BRANCHES nie jest zdefiniowana!"); return; } selectors.forEach(selector => { if (selector) { const firstOptionValue = selector.options[0]?.value; const firstOptionText = selector.options[0]?.textContent; selector.innerHTML = ''; if (firstOptionValue === "" && firstOptionText) { const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = firstOptionText; selector.appendChild(defaultOpt); } for (const branchKey in BRANCHES) { const option = document.createElement('option'); option.value = BRANCHES[branchKey].code; option.textContent = BRANCHES[branchKey].name; selector.appendChild(option); } } }); }; fillBranchSelectors();
-        if (modalWorkerCategorySelect) {
-            modalWorkerCategorySelect.innerHTML = '';
-            const currentWorkerRates = appState.getState('workerRatesSettings');
-            for (const catCode in currentWorkerRates) {
-                const option = document.createElement('option');
-                option.value = catCode; option.textContent = currentWorkerRates[catCode].name;
-                modalWorkerCategorySelect.appendChild(option);
+            const desc = rowObject.description; // Pobierz opis z modelu
+            if (desc) {
+                const matDb = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', desc);
+                if(matDb) normsM_source = [{ materialId: matDb.id, quantity: 1, unit: matDb.unit }];
             }
-        } else console.warn("Selektor modalWorkerCategorySelect nie znaleziony.");
-
-        if(modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
-        if(modalInvestmentLocationInput) modalInvestmentLocationInput.value = appState.getState('investmentLocation');
-        if(modalInvestorInfoInput) modalInvestorInfoInput.value = appState.getState('investorInfo');
-        if(modalContractorInfoInput) modalContractorInfoInput.value = appState.getState('contractorInfo');
-        if(modalVatRateSelect) modalVatRateSelect.value = appState.getState('vatRate');
-        const vatDisplay = document.getElementById('modal-vat-rate-display');
-        if(vatDisplay) vatDisplay.value = appState.getState('currentVatDisplayValue');
-
-        if(useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
-        const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
-        if (ogolnobudowlanyRateInput) {
-             const ratesSettings = appState.getState('workerRatesSettings');
-             setNumericInputValue(ogolnobudowlanyRateInput, ratesSettings.ogolnobudowlany?.rate || 0);
-             ogolnobudowlanyRateInput.addEventListener('input', debounce(handleLaborRateChange, 300));
-             ogolnobudowlanyRateInput.addEventListener('change', (e) => {
-                setNumericInputValue(e.target, parseFloat(e.target.value.replace(',', '.')) || 0.00);
-                if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
-            });
-        }
-        await updateDynamicSpecialistRatesVisibility();
-        if(useSameRateCheckbox) useSameRateCheckbox.addEventListener('change', handleUseSameRateChange);
-
-        if (branchSelectDropdown) {
-            branchSelectDropdown.value = appState.getState('lastBranchFilter') || "";
-            branchSelectDropdown.addEventListener('change', (e) => {
-                appState.setState('lastBranchFilter', e.target.value);
-            });
         }
 
-        appState.subscribe('estimateTitle', (newTitle) => { document.title = `${newTitle} - ${APP_VERSION}`; if (modalEstimateTitleInput && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalEstimateTitleInput.value = newTitle; });
-        appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-        appState.subscribe('useSameRateForAllSpecialists', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; await updateDynamicSpecialistRatesVisibility(); if (newValue) { const rates = appState.getState('workerRatesSettings'); const ogolnobudowlanyRate = rates.ogolnobudowlany?.rate || 0; const newRatesSettings = JSON.parse(JSON.stringify(rates)); Object.keys(newRatesSettings).forEach(cat => { if (cat !== 'ogolnobudowlany') newRatesSettings[cat].rate = ogolnobudowlanyRate; }); appState.setState('workerRatesSettings', newRatesSettings); } else { appState.notify('workerRatesSettingsChangedByToggle');} });
-        appState.subscribe('workerRatesSettings', async (newRates, oldRates) => { if (isRestoringState) return; if (JSON.stringify(newRates) === JSON.stringify(oldRates) && !appState.getState('useSameRateForAllSpecialists')) return; await updateDynamicSpecialistRatesVisibility(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-        appState.subscribe('workerRatesSettingsChangedByToggle', async () => { if (isRestoringState) return; await updateDynamicSpecialistRatesVisibility(); });
-        appState.subscribe('isHierarchicalMode', async (newValue, oldValue) => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez appState.setState('isHierarchicalMode')
-            // co jest ustawiane przez updateModelAndRender, gdy currentEstimateModel.isHierarchical się zmienia.
-            // Tutaj tylko reagujemy na zmianę flagi w appState (dla UI poza tabelą)
-            if (isRestoringState || newValue === oldValue) return;
-            document.body.classList.toggle('hierarchical-mode-active', newValue);
-            if(addDepartmentBtn) addDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
-            if(addSubDepartmentBtn) addSubDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
-            if(saveDepartmentTemplateBtn) { saveDepartmentTemplateBtn.style.display = newValue ? 'inline-block' : 'none'; if(!newValue) saveDepartmentTemplateBtn.disabled = true; }
-            if (newValue && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja już aktualizuje model
-            // Poniższe są już wywoływane przez updateModelAndRender:
-            // if(typeof renumberRows === 'function') renumberRows();
-            // if(typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-            // if(typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
-            // if(typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState();
-            // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-        });
-        appState.subscribe('estimateDataPotentiallyChanged', async () => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
-            // więc jej działanie (recalculate, save) jest już pokryte.
-            // Można ją usunąć lub zostawić na wypadek, gdyby inne moduły potrzebowały tego sygnału
-            // i nie wywoływały updateModelAndRender bezpośrednio.
-            if (isRestoringState) return;
-            // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-            // if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
-        });
-        appState.subscribe('estimateRowsStructureChanged', () => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
-            // jej działanie jest już pokryte.
-            if (isRestoringState) return;
-            // if (typeof renumberRows === 'function') renumberRows();
-            // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-        });
-        appState.subscribe('taskCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
-        appState.subscribe('materialCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof calculateMaterialSummary === 'function' && document.getElementById('materialy')?.classList.contains('active')) await calculateMaterialSummary(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
-        appState.subscribe('materialPricesImported', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-        appState.subscribe('estimateDataLoaded', async () => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez loadFullState,
-            // a ta funkcja już wywołuje updateModelAndRender, co pokrywa poniższe.
-            if (isRestoringState) return;
-            // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-            // if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility();
-            // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-        });
-        appState.subscribe('defaultTaskRowBackgroundColor', () => {
-            // Zmieniono: To jest teraz obsługiwane przez renderCostTable, która pobiera kolor z appState
-            if (!isRestoringState && typeof renderCostTable === 'function') {
-                renderCostTable(currentEstimateModel);
+        if (Array.isArray(normsM_source) && quantity > 0) {
+            for (const matNorm of normsM_source) {
+                let matId;
+                if(matNorm.materialId) matId = matNorm.materialId;
+                else if (matNorm.name) {
+                    const m = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', matNorm.name.trim());
+                    if(m) matId = m.id; else continue;
+                } else continue;
+
+                if (matId && typeof matNorm.quantity === 'number' && matNorm.quantity > 0) {
+                    if (!materialMap[matId]) {
+                        const matDb = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, matId);
+                        if (!matDb) continue;
+                        materialMap[matId] = { totalQuantity: 0, unit: matNorm.unit || matDb.unit || 'j.m.', category: matDb.categoryCode || 'IN', priceY: matDb.priceY || 0, priceX: matDb.priceX ?? (matDb.priceY || 0), name: matDb.name };
+                    }
+                    materialMap[matId].totalQuantity += matNorm.quantity * quantity;
+                    if(matNorm.unit && matNorm.unit !== 'j.m.' && materialMap[matId].unit === 'j.m.') materialMap[matId].unit = matNorm.unit;
+                }
             }
-        });
-
-
-        populateCommonUnitsDatalist(); setupTabs();
-        await loadEstimateState(); // Zmieniono: Ta funkcja ładuje dane do modelu i wywołuje renderCostTable
-        console.log("Stan kosztorysu wczytany.");
-
-        if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
-        if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
-        if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglądu'; }); }
-        if(undoBtn) undoBtn.addEventListener('click', undo); if(redoBtn) redoBtn.addEventListener('click', redo);
-        if (scrollToTopBtn) { scrollToTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }); }
-        document.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey) { if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if(undoBtn && !undoBtn.disabled) undo(); } else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); if(redoBtn && !redoBtn.disabled) redo(); } } });
-        if (customContextMenu) { document.addEventListener('contextmenu', showCustomContextMenu); customContextMenu.addEventListener('click', handleContextMenuAction); }
-        document.addEventListener('click', (event) => { if (customContextMenu && customContextMenu.style.display === 'block' && !customContextMenu.contains(event.target)) hideCustomContextMenu(); if (activeDropdown && activeSearchInput && !activeSearchInput.contains(event.target) && !activeDropdown.contains(event.target) && !event.target.closest('.suggestions-dropdown')) if(typeof hideAllDropdowns === 'function') hideAllDropdowns(); const isAddButton = event.target.closest('#add-row-btn') || event.target.closest('#add-department-btn') || event.target.closest('#add-subdepartment-btn'); const isIndicator = event.target.closest(`#${INDICATOR_ROW_ID}`); if (!isAddButton && !isIndicator) removeInsertIndicator(); if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex' && !colorPaletteDiv.contains(event.target) && !event.target.classList.contains('color-picker-icon')) { colorPaletteDiv.remove();} });
-        window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (activeDropdown && typeof hideAllDropdowns === 'function') hideAllDropdowns(); if (customContextMenu && customContextMenu.style.display === 'block') hideCustomContextMenu(); removeInsertIndicator(); if(notesModal && notesModal.style.display === 'block' && typeof closeNotesModal === 'function') closeNotesModal(); if(customTaskModal && customTaskModal.style.display === 'block' && typeof closeCustomTaskModal === 'function') closeCustomTaskModal(); if(materialSelectModal && materialSelectModal.style.display === 'block' && typeof closeMaterialSelectModal === 'function') closeMaterialSelectModal(); if(printSelectionModal && printSelectionModal.style.display === 'block' && typeof closePrintSelectionModal === 'function') closePrintSelectionModal(); if(estimateDetailsModal && estimateDetailsModal.style.display === 'block' && typeof closeEstimateDetailsModal === 'function') closeEstimateDetailsModal(); if(templatesModal && templatesModal.style.display === 'block' && typeof closeTemplatesModal === 'function') closeTemplatesModal(); if(confirmNotificationModal && confirmNotificationModal.style.display === 'block') { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); } if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex') { colorPaletteDiv.remove(); } } });
-
-        await initDBEstimateVersions();
-        initAutoSaveSettingsControls();
-        initUserActivityListeners(); // Rozpocznij śledzenie aktywności
-        startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
-
-        if (document.querySelector('.tab.active[data-tab="ustawienia"]')) {
-            if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
         }
-
-        updateUndoRedoButtons();
-        // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); // USUNIĘTE: Teraz renderCostTable to robi
-        console.log(`%cPełna inicjalizacja ${APP_VERSION} zakończona.`, "color: green; font-weight: bold;");
-        saveToLocalStorage(STORAGE_KEYS.APP_VERSION_LS, APP_VERSION);
-    } catch (error) {
-        console.error("KRYTYCZNY BŁĄD INICJALIZACJI APLIKACJI:", error);
-        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działa.`;
-        if (error.message) { if (error.message.toLowerCase().includes("json")) errorMessageToUser += "\n\nMożliwy problem z formatem plików JSON. Sprawdź konsolę (F12)."; else if (error.message.toLowerCase().includes("dbservice") || error.message.toLowerCase().includes("catalogimporter") || error.message.toLowerCase().includes("indexeddb")) errorMessageToUser += "\n\nMożliwy problem z inicjalizacją bazy danych lub katalogów. Sprawdź konsolę (F12) i kolejność skryptów."; else if (error.message.toLowerCase().includes("dom") || error.message.toLowerCase().includes("getelementbyid") || error.message.toLowerCase().includes("not found in dom")) errorMessageToUser += "\n\nMożliwy problem ze znalezieniem elementu HTML. Sprawdź index.html i konsolę (F12)."; else if (error.message.toLowerCase().includes("is not defined")) errorMessageToUser += `\n\nProblem z dostępnością funkcji lub zmiennej (${error.message.split(' ')[0]}). Sprawdź konsolę (F12) i kolejność skryptów.`; } errorMessageToUser += "\n\nSprawdź konsolę (F12) po szczegóły.";
-        if (typeof showNotification === 'function' && notificationsContainer) { showNotification(errorMessageToUser.replace(/\n/g, "<br>"), 'error', 0); } else { alert(errorMessageToUser.replace(/\n\n/g, '\n')); }
-        if (document.body) { document.body.innerHTML = `<div style="padding: 20px; text-align: left; font-family: Arial, sans-serif; background-color: #ffebee; border: 2px solid #c62828; margin: 20px auto; max-width: 800px; border-radius: 8px;"><h1 style="color: #c62828;">Błąd Krytyczny Aplikacji EazyKoszt</h1><p>${errorMessageToUser.replace(/\n/g, "<br>")}</p></div>`;}
     }
-} // <-- TUTAJ KOŃCZY SIĘ FUNKCJA initApp
 
-console.log("Plik EazyKoszt 0.4.2-script-core.js załadowany.");
+    let grandTotalValueMarket = 0;
+    let grandTotalProfitFromPurchase = 0;
+    const materialsArray = [];
+    for(const matId in materialMap){
+        const data = materialMap[matId];
+        const valueBasedOnMarketPrice = data.totalQuantity * data.priceY;
+        const unitProfit = data.priceY - data.priceX;
+        const totalProfit = unitProfit * data.totalQuantity;
+        grandTotalValueMarket += valueBasedOnMarketPrice;
+        grandTotalProfitFromPurchase += totalProfit;
+        materialsArray.push({ ...data, id: parseInt(matId), value: valueBasedOnMarketPrice, unitProfit, totalProfit });
+    }
+
+    materialsArray.sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+
+    let tableRowsHtml = '';
+    if (materialsArray.length > 0) {
+        materialsArray.forEach(material => {
+            tableRowsHtml += `<tr${material.priceY === 0 ? ' class="zero-price"' : ''}><td>${material.name}</td><td style="text-align: center;" title="${getMaterialCategoryFullName(material.category)}">${material.category}</td><td style="text-align: right;">${material.totalQuantity.toFixed(3)}</td><td style="text-align: center;">${material.unit}</td><td style="text-align: right;">${formatCurrency(material.priceY)}</td>`;
+            if (forProfitReport) {
+                tableRowsHtml += `<td style="text-align: right;">${formatCurrency(material.priceX)}</td><td style="text-align: right;">${formatCurrency(material.unitProfit)}</td>`;
+            }
+            tableRowsHtml += `<td style="text-align: right;">${formatCurrency(material.value)}</td>`;
+            if (forProfitReport) {
+                tableRowsHtml += `<td style="text-align: right;">${formatCurrency(material.totalProfit)}</td>`;
+            }
+            tableRowsHtml += `</tr>`;
+        });
+    } else {
+        tableRowsHtml = `<tr><td colspan="${forProfitReport ? '9' : '6'}" style="text-align:center;">Brak materiałów.</td></tr>`;
+    }
+
+    let legendHtml = '';
+    if (!forProfitReport && typeof MATERIAL_CATEGORIES_MAP !== 'undefined') {
+        legendHtml = '<div class="material-categories-legend print-only" style="margin-top:10px; font-size:8pt;"><strong>Legenda kategorii:</strong> ';
+        const legendItems = [];
+        for (const catCode in MATERIAL_CATEGORIES_MAP) {
+            legendItems.push(`${catCode} - ${MATERIAL_CATEGORIES_MAP[catCode]}`);
+        }
+        legendHtml += legendItems.join(', ') + '.</div>`;
+    }
+
+    const headerCols = forProfitReport ? `<th>Materiał</th><th style="text-align: center;">Kat.</th><th style="text-align: right;">Ilość</th><th style="text-align: center;">j.m.</th><th style="text-align: right;">Cena Rynk. (Y)</th><th style="text-align: right;">Cena Zakupu (X)</th><th style="text-align: right;">Zysk/Strata Jedn.</th><th style="text-align: right;">Wartość (Y)</th><th style="text-align: right;">Zysk/Strata Sum.</th>` : `<th>Materiał</th><th style="text-align: center;">Kat.</th><th style="text-align: right;">Ilość</th><th style="text-align: center;">j.m.</th><th style="text-align: right;">Cena jedn. (Y)</th><th style="text-align: right;">Wartość (Y)</th>`;
+    let footerHtml = `<tr><td colspan="${forProfitReport ? '7' : '5'}" style="text-align: right; font-weight: bold;">SUMA (wg cen rynkowych Y):</td><td style="text-align: right; font-weight: bold;">${formatCurrency(grandTotalValueMarket)}</td>${forProfitReport ? `<td style="text-align: right; font-weight: bold;">${formatCurrency(grandTotalProfitFromPurchase)}</td>` : ''}</tr>`;
+    if (forProfitReport) {
+        footerHtml = `<tr><td colspan="8" style="text-align: right; font-weight: bold;">SUMA ZYSKU/STRATY Z ZAKUPU MATERIAŁÓW:</td><td style="text-align: right; font-weight: bold;">${formatCurrency(grandTotalProfitFromPurchase)}</td></tr>` + footerHtml;
+    }
+    const tableTitle = forProfitReport ? "Raport Zysku/Straty z Materiałów" : "Wykaz Materiałów";
+
+    return `<div class="print-page"><h1>${tableTitle}</h1><hr><table><thead><tr>${headerCols}</tr></thead><tbody>${tableRowsHtml}</tbody><tfoot>${footerHtml}</tfoot></table>${legendHtml}</div>`;
+}
+async function handleGenerateSelectedPrints() { const selectedOptions = []; if (printOptionsContainer) { printOptionsContainer.querySelectorAll('input[name="printSelection"]:checked').forEach(checkbox => { selectedOptions.push(checkbox.value); }); } if (selectedOptions.length === 0) { showNotification("Wybierz przynajmniej jeden dokument do wydrukowania.", 'warning'); return; } let combinedHtmlContent = ""; let firstDoc = true; let documentTitle = (typeof appState !== 'undefined' ? appState.getState('estimateTitle') : 'Kosztorys') ? `Kosztorys: ${(typeof appState !== 'undefined' ? appState.getState('estimateTitle') : 'Kosztorys')}` : "Wydruk Zbiorczy - EazyKoszt"; let specificCss = ""; for (const option of selectedOptions) { if (!firstDoc && option !== 'schedule') { combinedHtmlContent += '<div style="page-break-before: always;"></div>'; } let contentForThisOption = ""; switch (option) { case 'coverPage': contentForThisOption = getCoverPageContent(); break; case 'estimateDetail': contentForThisOption = await getEstimateDetailContent(); break; case 'estimatePositions': contentForThisOption = await getEstimatePositionsContent(); break; case 'offer': contentForThisOption = await getOfferContent(); break; case 'materialList': contentForThisOption = await getMaterialListContent(false); break; case 'analysisDeptCharts': if (AnalysisModule && typeof AnalysisModule.getAnalysisDeptChartsContent === 'function') contentForThisOption = await AnalysisModule.getAnalysisDeptChartsContent(); else console.warn("Funkcja getAnalysisDeptChartsContent niedostępna"); break; case 'analysisWorkerDistChart': if (AnalysisModule && typeof AnalysisModule.getAnalysisWorkerDistChartContent === 'function') contentForThisOption = await AnalysisModule.getAnalysisWorkerDistChartContent(); else console.warn("Funkcja getAnalysisWorkerDistChartContent niedostępna"); break; case 'analysisLaborTable': if (AnalysisModule && typeof AnalysisModule.getAnalysisLaborTableContent === 'function') { contentForThisOption = await AnalysisModule.getAnalysisLaborTableContent(); specificCss += ".labor-analysis-table { font-size: 8pt; } .labor-analysis-table th, .labor-analysis-table td { padding: 3px 4px; }"; } else console.warn("Funkcja getAnalysisLaborTableContent niedostępna"); break; case 'analysisMaterialByDept': if (AnalysisModule && typeof AnalysisModule.getAnalysisMaterialByDeptContent === 'function') { contentForThisOption = await AnalysisModule.getAnalysisMaterialByDeptContent(); specificCss += ".material-analysis-table { font-size: 8pt; } .material-analysis-table th, .material-analysis-table td { padding: 3px 4px; }"; } else console.warn("Funkcja getAnalysisMaterialByDeptContent niedostępna"); break; case 'analysisMaterialByCat': if (AnalysisModule && typeof AnalysisModule.getAnalysisMaterialByCatContent === 'function') { contentForThisOption = await AnalysisModule.getAnalysisMaterialByCatContent(); specificCss += ".material-analysis-table { font-size: 8pt; } .material-analysis-table th, .material-analysis-table td { padding: 3px 4px; }"; } else console.warn("Funkcja getAnalysisMaterialByCatContent niedostępna"); break; case 'analysisMaterialProfit': if (AnalysisModule && typeof AnalysisModule.getAnalysisMaterialProfitContent === 'function') { contentForThisOption = await AnalysisModule.getAnalysisMaterialProfitContent(); specificCss += ".material-analysis-table { font-size: 8pt; } .material-analysis-table th, .material-analysis-table td { padding: 3px 4px; }"; } else console.warn("Funkcja getAnalysisMaterialProfitContent niedostępna"); break; case 'schedule': if (AnalysisModule && AnalysisModule.openScheduleWindow) { AnalysisModule.openScheduleWindow(); if (selectedOptions.length === 1) { closePrintSelectionModal(); return; } } firstDoc = true; break; default: console.warn("Nieznana opcja wydruku:", option); } if (contentForThisOption) { combinedHtmlContent += contentForThisOption; firstDoc = false; } } if (combinedHtmlContent) { generatePrintWindow(documentTitle, combinedHtmlContent, specificCss); } closePrintSelectionModal(); }
+async function handlePreviewEstimateDetail() { const content = await getEstimateDetailContent(); if (content) { generatePrintWindow(`Podgląd - Kosztorys Szczegółowy (${(typeof appState !== 'undefined' ? appState.getState('estimateTitle') : 'Kosztorys') || ''})`, content); } else { showNotification("Nie można wygenerować podglądu - brak treści kosztorysu.", 'warning'); } }
+// ==========================================================================
+// SEKCJA 10: ZARZĄDZANIE WERSJAMI KOSZTORYSU (UI)
+// ZMIANA: Funkcje UI dla wersji, wywołujące logikę z script-core.js
+// ==========================================================================
+async function displayEstimateVersions() {
+    if (!estimateVersionsSelect) return;
+    estimateVersionsSelect.innerHTML = '';
+    try {
+        const versions = await getAllEstimateVersionsFromDB(); // Funkcja z script-core.js
+        if (versions.length === 0) {
+            estimateVersionsSelect.innerHTML = '<option value="" disabled>Brak zapisanych wersji.</option>';
+            if (loadSelectedVersionBtn) loadSelectedVersionBtn.disabled = true;
+            if (deleteSelectedVersionBtn) deleteSelectedVersionBtn.disabled = true;
+            return;
+        }
+        versions.forEach(version => {
+            const option = document.createElement('option');
+            option.value = version.id;
+            option.textContent = `${version.name} (z ${new Date(version.timestamp).toLocaleString('pl-PL', {dateStyle: 'short', timeStyle: 'short'})})`;
+            if (version.isAuto) {
+                option.textContent += " [Autozapis]";
+                option.style.fontStyle = "italic";
+                option.style.color = "#555";
+            }
+            estimateVersionsSelect.appendChild(option);
+        });
+        if (loadSelectedVersionBtn) loadSelectedVersionBtn.disabled = false;
+        if (deleteSelectedVersionBtn) deleteSelectedVersionBtn.disabled = false;
+    } catch (error) {
+        console.error("Błąd odczytu wersji:", error);
+        estimateVersionsSelect.innerHTML = '<option value="" disabled>Błąd wczytywania wersji.</option>';
+    }
+}
+
+async function loadSelectedVersion() {
+    const selectedId = estimateVersionsSelect.value;
+    if (!selectedId) {
+        showNotification("Proszę wybrać wersję z listy.", 'warning');
+        return;
+    }
+    try {
+        const versionRecord = await getEstimateVersionFromDB(parseInt(selectedId, 10)); // Funkcja z script-core.js
+        if (versionRecord) {
+            await loadEstimateFromVersionRecord(versionRecord); // Funkcja z script-core.js
+        } else {
+            showNotification("Nie znaleziono wybranej wersji.", 'error');
+        }
+    } catch (error) {
+        showNotification("Błąd wczytywania wersji.", 'error');
+    }
+}
+
+async function deleteSelectedVersion() {
+    if (!estimateVersionsSelect || !estimateVersionsSelect.value) {
+        showNotification("Wybierz wersję do usunięcia.", 'warning');
+        return;
+    }
+    const versionId = parseInt(estimateVersionsSelect.value, 10);
+    const versionName = estimateVersionsSelect.options[estimateVersionsSelect.selectedIndex].text;
+    showConfirmNotification(`Czy na pewno chcesz usunąć wersję "${versionName}"? Tej operacji nie można cofnąć.`, async () => {
+        try {
+            await deleteEstimateVersionFromDB(versionId); // Funkcja z script-core.js
+            await displayEstimateVersions(); // Odśwież listę UI
+        } catch (error) {
+            showNotification("Błąd usuwania wersji.", 'error');
+        }
+    });
+}
+
+// ==========================================================================
+// SEKCJA 11: OBSŁUGA UI KATALOGÓW (TERAZ "KATALOGI WŁASNE") (bez zmian)
+// ==========================================================================
+async function refreshCatalogsUITab() {
+    if (document.getElementById('katalogi-wlasne')?.classList.contains('active')) {
+        await refreshTasksCatalogList();
+        await refreshMaterialsCatalogList();
+    }
+}
+async function refreshTasksCatalogList() {
+    if (!tasksCatalogListContainer) { console.warn("Kontener listy zadań katalogowych nie znaleziony."); return; }
+    tasksCatalogListContainer.innerHTML = '<p>Ładowanie katalogu własnych pozycji...</p>';
+    const searchTerm = tasksCatalogSearch?.value.toLowerCase().trim() || '';
+
+    try {
+        let allTasks = await dbService.getAllItems(TASKS_CATALOG_STORE_NAME);
+        let userTasks = allTasks.filter(task => task.isPredefined === false);
+
+        if (searchTerm) {
+            userTasks = userTasks.filter(task =>
+                task.description.toLowerCase().includes(searchTerm) ||
+                (task.department && task.department.toLowerCase().includes(searchTerm)) ||
+                (task.branch && ((typeof BRANCHES !== 'undefined' && BRANCHES[task.branch]?.name.toLowerCase().includes(searchTerm)) || task.branch.toLowerCase().includes(searchTerm)))
+            );
+        }
+
+        if (userTasks.length === 0) {
+            tasksCatalogListContainer.innerHTML = '<p>Brak własnych pozycji kosztorysowych spełniających kryteria. Dodaj nowe, aby je tu zobaczyć.</p>';
+            return;
+        }
+
+        userTasks.sort((a, b) => {
+            const branchCompare = ((typeof BRANCHES !== 'undefined' && BRANCHES[a.branch]?.name) || a.branch || '').localeCompare(((typeof BRANCHES !== 'undefined' && BRANCHES[b.branch]?.name) || b.branch || ''), 'pl');
+            if (branchCompare !== 0) return branchCompare;
+            const deptCompare = (a.department || '').localeCompare(b.department || '', 'pl');
+            if (deptCompare !== 0) return deptCompare;
+            return a.description.localeCompare(b.description, 'pl');
+        });
+
+        let html = '<ul class="catalog-items-list">';
+        let currentBranchDisplay = null;
+        let currentDepartmentDisplay = null;
+
+        userTasks.forEach(task => {
+            const taskBranchName = (typeof BRANCHES !== 'undefined' && BRANCHES[task.branch]?.name) || task.branch || 'Brak Branży';
+            if (taskBranchName !== currentBranchDisplay) {
+                currentBranchDisplay = taskBranchName;
+                html += `<li class="catalog-branch-header">${currentBranchDisplay}</li>`;
+                currentDepartmentDisplay = null;
+            }
+            if (task.department !== currentDepartmentDisplay) {
+                currentDepartmentDisplay = task.department;
+                html += `<li class="catalog-department-header">${currentDepartmentDisplay || 'Dział Ogólny'}</li>`;
+            }
+
+            html += `<li class="catalog-item task-item" data-task-id="${task.id}">
+                        <div class="item-info">
+                            <span class="item-description">${task.description}</span>
+                            <span class="item-details">
+                                (j.m.: ${task.unit || '?'}), Norma R: ${task.norms?.R !== undefined ? task.norms.R.toFixed(3) : '-'}, Materiały: ${task.norms?.M?.length || 0}
+                                <span class="user-defined-tag">(Własne)</span>
+                            </span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="edit-catalog-item-btn small-action-btn secondary" data-id="${task.id}" title="Edytuj pozycję katalogową">Edytuj</button>
+                            <button class="delete-catalog-item-btn small-action-btn danger" data-id="${task.id}" title="Usuń pozycję z katalogu">Usuń</button>
+                        </div>
+                    </li>`;
+        });
+        html += '</ul>';
+        tasksCatalogListContainer.innerHTML = html;
+
+        tasksCatalogListContainer.querySelectorAll('.edit-catalog-item-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => await openModal('edit_custom', parseInt(e.target.dataset.id)));
+        });
+        tasksCatalogListContainer.querySelectorAll('.delete-catalog-item-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const taskId = parseInt(e.target.dataset.id);
+                const task = await dbService.getItem(TASKS_CATALOG_STORE_NAME, taskId);
+                if (task) {
+                    showConfirmNotification(`Czy na pewno chcesz usunąć własną pozycję katalogową "${task.description}"? Tej operacji nie można cofnąć.`, async () => {
+                        await dbService.deleteItem(TASKS_CATALOG_STORE_NAME, taskId);
+                        if (!isRestoringState && typeof appState !== 'undefined') appState.notify('taskCatalogChanged');
+                        showNotification("Własna pozycja katalogowa usunięta.", 'info');
+                    });
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("Błąd ładowania katalogu własnych pozycji:", error);
+        tasksCatalogListContainer.innerHTML = '<p style="color:red;">Wystąpił błąd podczas ładowania katalogu własnych pozycji.</p>';
+        showNotification("Błąd ładowania katalogu własnych pozycji.", 'error');
+    }
+}
+async function refreshMaterialsCatalogList() {
+    if (!materialsCatalogListContainer) { console.warn("Kontener listy materiałów katalogowych nie znaleziony."); return; }
+    materialsCatalogListContainer.innerHTML = '<p>Ładowanie katalogu własnych materiałów...</p>';
+    const searchTerm = materialsCatalogSearch?.value.toLowerCase().trim() || '';
+
+    try {
+        let allMaterials = await dbService.getAllItems(MATERIALS_CATALOG_STORE_NAME);
+        let userMaterials = allMaterials.filter(mat => mat.isPredefined === false);
+
+        if (searchTerm) {
+            userMaterials = userMaterials.filter(mat => mat.name.toLowerCase().includes(searchTerm));
+        }
+
+        if (userMaterials.length === 0) {
+            materialsCatalogListContainer.innerHTML = '<p>Brak własnych materiałów spełniających kryteria. Dodaj nowe, aby je tu zobaczyć.</p>';
+            return;
+        }
+
+        userMaterials.sort((a, b) => {
+            const catCompare = (getMaterialCategoryFullName(a.categoryCode) || a.categoryCode || '').localeCompare(getMaterialCategoryFullName(b.categoryCode) || b.categoryCode || '', 'pl');
+            if (catCompare !== 0) return catCompare;
+            return a.name.localeCompare(b.name, 'pl');
+        });
+
+        let html = '<ul class="catalog-items-list">';
+        let currentCategoryDisplay = null;
+
+        userMaterials.forEach(mat => {
+            const categoryFullName = getMaterialCategoryFullName(mat.categoryCode) || mat.categoryCode || 'Brak Kategorii';
+            if (categoryFullName !== currentCategoryDisplay) {
+                currentCategoryDisplay = categoryFullName;
+                html += `<li class="catalog-category-header">${currentCategoryDisplay} (${mat.categoryCode || '?'})</li>`;
+            }
+            html += `<li class="catalog-item material-item" data-material-id="${mat.id}">
+                        <div class="item-info">
+                            <span class="item-name">${mat.name}</span>
+                            <span class="item-details">
+                                (j.m.: ${mat.unit || '?'}), Cena R: ${formatCurrency(mat.priceY || 0)} zł, Cena Z: ${formatCurrency(mat.priceX ?? (mat.priceY || 0))} zł
+                                <span class="user-defined-tag">(Własne)</span>
+                            </span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="edit-catalog-item-btn small-action-btn secondary" data-id="${mat.id}" data-type="material" title="Edytuj materiał w katalogu">Edytuj</button>
+                            <button class="delete-catalog-item-btn small-action-btn danger" data-id="${mat.id}" data-type="material" title="Usuń materiał z katalogu">Usuń</button>
+                        </div>
+                    </li>`;
+        });
+        html += '</ul>';
+        materialsCatalogListContainer.innerHTML = html;
+
+        materialsCatalogListContainer.querySelectorAll('.edit-catalog-item-btn[data-type="material"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const materialId = parseInt(e.target.dataset.id);
+                const material = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, materialId);
+                if(material){
+                    if(newMaterialNameInput) newMaterialNameInput.value = material.name;
+                    if(newMaterialUnitInput) newMaterialUnitInput.value = material.unit;
+                    if(newMaterialCategoryInput) newMaterialCategoryInput.value = material.categoryCode || 'IN';
+                    showNotification(`Aby edytować materiał "${material.name}", zmień jego ceny w zakładce "Wykaz Materiałów" lub nazwę przez dwuklik. Zaawansowana edycja (np. kategoria) wymagałaby dedykowanego formularza.`, 'info', 10000);
+                }
+            });
+        });
+        materialsCatalogListContainer.querySelectorAll('.delete-catalog-item-btn[data-type="material"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const materialId = parseInt(e.target.dataset.id);
+                const material = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, materialId);
+                if (material) {
+                    showConfirmNotification(`Czy na pewno chcesz usunąć własny materiał "${material.name}" z katalogu? Tej operacji nie można cofnąć.`, async () => {
+                        await dbService.deleteItem(MATERIALS_CATALOG_STORE_NAME, materialId);
+                        if (!isRestoringState && typeof appState !== 'undefined') appState.notify('materialCatalogChanged');
+                        showNotification("Własny materiał usunięty z katalogu.", 'info');
+                    });
+                }
+            });
+        });
+    } catch (error) {
+        console.error("Błąd ładowania katalogu własnych materiałów:", error);
+        materialsCatalogListContainer.innerHTML = '<p style="color:red;">Wystąpił błąd podczas ładowania katalogu własnych materiałów.</p>';
+        showNotification("Błąd ładowania katalogu własnych materiałów.", 'error');
+    }
+}
+async function updateMaterialNameInCatalog(materialId, newName, oldName) { if (!newName) { showNotification("Nazwa materiału nie może być pusta.", 'warning'); return false; } const existingMaterialWithNewName = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', newName); if (existingMaterialWithNewName && existingMaterialWithNewName.id !== materialId) { showNotification(`Materiał o nazwie "${newName}" już istnieje w katalogu. Wybierz inną nazwę.`, 'warning', 7000); return false; } try { const materialToUpdate = await dbService.getItem(MATERIALS_CATALOG_STORE_NAME, materialId); if (!materialToUpdate) { showNotification("Nie znaleziono materiału do aktualizacji.", 'error'); return false; } materialToUpdate.name = newName; materialToUpdate.updatedAt = new Date().toISOString(); await dbService.updateItem(MATERIALS_CATALOG_STORE_NAME, materialToUpdate); console.log(`Zaktualizowano nazwę materiału ID ${materialId} z "${oldName}" na "${newName}".`); if (!isRestoringState && typeof appState !== 'undefined') { appState.notify('materialCatalogChanged'); appState.notify('estimateDataPotentiallyChanged'); } showNotification(`Nazwa materiału zaktualizowana z "${oldName}" na "${newName}".`, 'success'); return true; } catch (error) { console.error("Błąd podczas aktualizacji nazwy materiału w katalogu:", error); showNotification("Wystąpił błąd podczas aktualizacji nazwy materiału.", 'error'); return false; } }
+
+console.log("Moduł modali i I/O (EazyKoszt 0.5.0-script-modals-io.js) załadowany.");
+
+/*
+Notatki dotyczące zmian w `js/script-modals-io.js`:
+
+1.  **`openNotesModal(rowId)`**:
+    *   Zmieniono sygnaturę, aby przyjmowała `rowId` (ID wiersza z modelu) zamiast elementu DOM (`targetRow`).
+    *   Teraz pobiera notatki (`rowObject.notes`) bezpośrednio z `currentEstimateModel.rows` na podstawie `rowId`.
+    *   `currentNotesTargetRow` teraz przechowuje `rowId`.
+
+2.  **`saveNotesFromModal()`**:
+    *   Zmieniono, aby używała `currentNotesTargetRow` (czyli `rowId`) do znalezienia i zaktualizowania odpowiedniego obiektu wiersza w `currentEstimateModel.rows`.
+    *   Wywołuje `updateModelAndRender({ rows: updatedRows })` w celu zaktualizowania modelu i ponownego renderowania tabeli (co odświeży też ikonę notatek).
+    *   Dodano tymczasową wizualną aktualizację ikony notatek bezpośrednio na DOM, aby zapewnić natychmiastowy feedback, zanim `renderCostTable` przerysuje cały wiersz. Docelowo ta część mogłaby zostać usunięta, gdyby `renderCostTable` była na tyle szybka, że feedback jest natychmiastowy.
+
+3.  **`openModal(context, ref)`**:
+    *   W kontekście `'edit_row'`, `ref` nadal jest DOM elementem wiersza. Funkcja pobiera `rowId` z tego elementu i używa go do znalezienia odpowiedniego obiektu wiersza w `currentEstimateModel.rows`.
+    *   Wszystkie dane do wypełnienia modala są teraz pobierane z tego obiektu w modelu.
+
+4.  **`_updateEstimateRowFromModal(domRowElement)`**:
+    *   Ta funkcja jest wywoływana po zapisaniu danych z modala dla lokalnie edytowanego wiersza (nie katalogowego).
+    *   Zmieniono, aby znajdowała odpowiedni obiekt wiersza w `currentEstimateModel.rows` (na podstawie `domRowElement.dataset.rowId`).
+    *   Wszystkie zmiany danych (opis, ilość, normy lokalne, linki katalogowe) są wykonywane na **kopii tego obiektu w modelu (`updatedRow`)**.
+    *   Wywołuje `updateModelAndRender({ rows: updatedRowsArray })` w celu zaktualizowania modelu i ponownego renderowania tabeli.
+
+5.  **`_saveOrUpdateCatalogTask(isEditing, editingCatalogTaskId)`**:
+    *   Ta funkcja odpowiada za edycję/tworzenie pozycji w katalogu.
+    *   Jeśli pozycja katalogowa jest edytowana (`isEditing` jest `true`), po zapisaniu zmian do IndexedDB, funkcja **iteruje przez `currentEstimateModel.rows`**.
+    *   Wszystkie wiersze w kosztorysie, które korzystają z tej zaktualizowanej pozycji katalogowej (poprzez `taskCatalogId` i nie mają lokalnego nadpisania opisu), są aktualizowane w modelu (zmieniony opis, `originalCatalogDesc`).
+    *   Następnie wywoływane jest `updateModelAndRender` z zaktualizowanymi wierszami.
+
+6.  **`handleInsertTemplate()`**:
+    *   Zmieniono, aby pobierała dane z `currentEstimateModel.rows` (jeśli ma dodać dział jako pierwszy).
+    *   Szablony są teraz wstawiane poprzez tworzenie obiektów dla `rowsToAdd` i dodawanie ich do `currentEstimateModel.rows`.
+    *   Wywołuje `updateModelAndRender`.
+
+7.  **`saveTemplate()`**:
+    *   W przypadku zapisu szablonu działu, funkcja teraz pobiera dane z `currentEstimateModel.rows` (blok działu).
+    *   W przypadku zapisu szablonu całego kosztorysu, funkcja po prostu pobiera `currentEstimateModel.rows` jako `templateData`.
+
+8.  **`loadFullState(loadedData)`**:
+    *   Zmieniono, aby wczytywała dane bezpośrednio do `currentEstimateModel` (rows, departmentColors, isHierarchical).
+    *   Wywołuje `renderCostTable` po wczytaniu, aby przerysować tabelę.
+    *   `appState` jest również synchronizowane z danymi z pliku.
+
+9.  **`saveEstimateToFile()`**:
+    *   Zmieniono, aby pobierała dane `estimateRows` i `departmentColors` bezpośrednio z `getCurrentEstimateDisplayState()` (która teraz zwraca `currentEstimateModel`).
+
+10. **Pozostałe funkcje wydruku (`getEstimateDetailContent`, `getEstimatePositionsContent`, `getOfferContent`, `getMaterialListContent`)**:
+    *   **Kluczowa zmiana**: Zamiast iterować po elementach DOM tabeli (`costTableBody.querySelectorAll('tr')`), teraz iterują po obiektach w `currentEstimateModel.rows`.
+    *   Wszystkie dane tekstowe, liczbowe, notatki, normy są pobierane z `rowObject` w modelu.
+    *   Dane katalogowe (jeśli pozycja jest powiązana z katalogiem) są nadal pobierane asynchronicznie z IndexedDB za pomocą `dbService.getItem()`, ponieważ model przechowuje tylko `taskCatalogId`, a nie całe dane katalogowe.
+    *   **LP**: LP jest nadal odczytywane z DOM w tych funkcjach (`domRowRef.cells[1]?.textContent`). Jest to tymczasowe i wymagałoby dalszej refaktoryzacji `renumberRows` (aby zapisywało LP do modelu) w celu pełnej niezależności od DOM.
+    *   **Kolory**: Kolory dla wydruków są teraz również odczytywane z `currentEstimateModel.departmentColors`.
+
+*/
