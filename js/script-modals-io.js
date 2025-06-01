@@ -975,6 +975,7 @@ async function processCsvFile() { if (!selectedCsvFile) { showNotification("Wybi
 // ==========================================================================
 // SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
 // ==========================================================================
+// UWAGA: Deklaracja showCustomContextMenu TYLKO RAZ!
 const showCustomContextMenu = (event) => {
     event.preventDefault();
     if (!customContextMenu) return;
@@ -1013,10 +1014,12 @@ const showCustomContextMenu = (event) => {
     customContextMenu.style.top = `${topPosition}px`;
     customContextMenu.style.left = `${leftPosition}px`;
 };
+
 const hideCustomContextMenu = () => {
     if (customContextMenu) customContextMenu.style.display = 'none';
     contextMenuTargetRow = null;
 };
+
 const handleContextMenuAction = async (event) => {
     if (!event.target.matches('#custom-context-menu li') || event.target.classList.contains('disabled')) return;
     const action = event.target.dataset.action;
