@@ -975,53 +975,16 @@ async function processCsvFile() { if (!selectedCsvFile) { showNotification("Wybi
 // ==========================================================================
 // SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
 // ==========================================================================
-// UWAGA: NIE deklaruj tutaj showCustomContextMenu ani hideCustomContextMenu!
-// Obie funkcje powinny być zadeklarowane tylko raz (np. w script-core.js).
+// UWAGA: NIE deklaruj tutaj showCustomContextMenu, hideCustomContextMenu ani handleContextMenuAction!
+// Te funkcje powinny być zadeklarowane tylko w jednym pliku (np. w script-core.js).
 
-const handleContextMenuAction = async (event) => {
-    if (!event.target.matches('#custom-context-menu li') || event.target.classList.contains('disabled')) return;
-    const action = event.target.dataset.action;
-    // hideCustomContextMenu jest globalna, wywołujemy ją, ale nie deklarujemy!
-    if (typeof hideCustomContextMenu === 'function') hideCustomContextMenu();
-    const targetDomRow = contextMenuTargetRow || lastClickedRow; // Element DOM wiersza
+// Jeśli potrzebujesz korzystać z tych funkcji, wywołuj je jako globalne – NIE deklaruj ponownie!
+// Przykład wywołania (jeśli potrzebujesz, ale bez deklaracji):
+// if (typeof showCustomContextMenu === 'function') showCustomContextMenu(event);
+// if (typeof hideCustomContextMenu === 'function') hideCustomContextMenu();
+// if (typeof handleContextMenuAction === 'function') handleContextMenuAction(event);
 
-    switch (action) {
-        case 'edit':
-            if (targetDomRow) {
-                if (targetDomRow.dataset.rowType === 'task' && typeof handleEditEstimateRow === 'function') await handleEditEstimateRow(targetDomRow);
-                else if (targetDomRow.dataset.rowType === 'department' || targetDomRow.dataset.rowType === 'subdepartment') {
-                    const inputField = targetDomRow.querySelector('.special-row-input');
-                    if (inputField) inputField.focus();
-                }
-            }
-            break;
-        case 'edit-notes':
-            if (targetDomRow && typeof openNotesModal === 'function') openNotesModal(targetDomRow.dataset.rowId);
-            break;
-        case 'delete':
-            if (!targetDomRow || !costTableBody || !costTableBody.contains(targetDomRow)) {
-                console.warn("handleContextMenuAction: Brak docelowego wiersza do usunięcia.");
-                return;
-            }
-            // ...tutaj dalsza logika usuwania...
-            break;
-        case 'save-version':
-            if (typeof _internalSaveCurrentEstimateAsVersion === 'function') await _internalSaveCurrentEstimateAsVersion(false);
-            break;
-        case 'save-estimate':
-            if (typeof saveEstimateToFile === 'function') await saveEstimateToFile();
-            break;
-        case 'go-to-settings':
-            if (typeof activateTab === 'function') activateTab('ustawienia');
-            break;
-        case 'print':
-            if (typeof openPrintSelectionModal === 'function') openPrintSelectionModal();
-            break;
-        // ... inne akcje ...
-        default:
-            break;
-    }
-};
+// Ta sekcja pozostaje pusta, aby uniknąć konfliktów nazw funkcji.
 
 // ==========================================================================
 // SEKCIA 10: GŁÓWNA INICJALIZACJA APLIKACJI (initApp)
