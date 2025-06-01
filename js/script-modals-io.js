@@ -976,9 +976,7 @@ async function processCsvFile() { if (!selectedCsvFile) { showNotification("Wybi
 // SEKCJA 9: NIESTANDARDOWE MENU KONTEKSTOWE
 // ==========================================================================
 // UWAGA: Deklaracja showCustomContextMenu TYLKO RAZ!
-const showCustomContextMenu = (event) => {
-    event.preventDefault();
-    if (!customContextMenu) return;
+
 
     const targetRow = event.target.closest('tr');
     contextMenuTargetRow = (targetRow && costTableBody && costTableBody.contains(targetRow) && targetRow.id !== INDICATOR_ROW_ID) ? targetRow : null;
