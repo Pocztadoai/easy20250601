@@ -1,7 +1,7 @@
 // Plik: database-schema.js
 // Opis: Definiuje schemat bazy danych IndexedDB, stałe nazwy magazynów,
 //       wersję bazy oraz predefiniowane dane (np. branże, kategorie).
-// Wersja aplikacji, z którą ten schemat jest powiązany: EazyKoszt 0.4.2
+// Wersja aplikacji, z którą ten schemat jest powiązany: EazyKoszt 0.6.1A
 
 const DB_NAME = 'EazyKosztDB_v0_3_0';
 const DB_VERSION = 1; // Pozostaje 1, jeśli struktura głównych magazynów się nie zmienia
@@ -73,4 +73,4 @@ const MATERIAL_CATEGORIES_MAP = {
 
 const PREDEFINED_CATALOG_VERSION = "1.0.3"; // Wersja predefiniowanych danych
 
-console.log("Plik database-schema.js (EazyKoszt 0.4.2) załadowany.");
+console.log("Plik database-schema.js (EazyKoszt 0.6.1A) załadowany.");

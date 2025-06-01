@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plik: js/catalog-importer.js
-// Wersja: 0.6.0 (EazyKoszt)
+// Wersja: 0.6.1A (EazyKoszt)
 // Opis: Moduł odpowiedzialny za import i aktualizację predefiniowanych
 //       katalogów zadań (pozycji kosztorysowych) i materiałów do bazy 
 //       danych IndexedDB. Działa przy pierwszym uruchomieniu lub aktualizacji wersji katalogów.
@@ -22,7 +22,7 @@ class CatalogImporter {
             throw new Error(errorMsg);
         }
         this.dbService = dbServiceInstance;
-        console.log("CatalogImporter (Wersja 0.6.0) zainicjalizowany.");
+        console.log("CatalogImporter (Wersja 0.6.1A) zainicjalizowany.");
     }
 
     // ==========================================================================
@@ -208,7 +208,7 @@ class CatalogImporter {
             }
         } catch (error) {
             console.error("CatalogImporter.checkAndImportInitialData: Krytyczny błąd podczas głównego procesu sprawdzania/importu:", error);
-            const criticalErrorMsg = `Wystąpił krytyczny błąd aplikacji podczas inicjalizacji katalogów: ${error.message}. Aplikacja może nie działać poprawnie.`;
+            const criticalErrorMsg = `Wystąpił krytyczny błąd aplikacji podczas inicjalizacji katalogów: ${error.message}. Aplikacja może nie działa poprawnie.`;
             if (typeof showNotification === 'function' && notificationsContainer) showNotification(criticalErrorMsg, 'error', 0);
             else alert(criticalErrorMsg);
         }
@@ -270,4 +270,4 @@ class CatalogImporter {
 // ==========================================================================
 // Logowanie załadowania pliku
 // ==========================================================================
-console.log("Plik js/catalog-importer.js (Wersja 0.6.0) załadowany.");
+console.log("Plik js/catalog-importer.js (Wersja 0.6.1A) załadowany.");

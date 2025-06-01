@@ -1,11 +1,12 @@
 // Opis: Moduł odpowiedzialny za generowanie analizy kosztorysu.
-// Wersja 0.5.0: Uwzględnienie departmentColors w tabelach analizy.
+// Wersja 0.6.1D: Dostosowanie do nowego modelu danych.
+//                 Poprawka LP w wykresie Gantta (pobieranie z DOM).
 
 // ==========================================================================
 // SEKCJA 1: DEFINICJA MODUŁU AnalysisModule
 // ==========================================================================
 
-console.log("Moduł Analizy EazyKoszt 0.5.0 ładowany...");
+console.log("Moduł Analizy EazyKoszt 0.6.1D ładowany...");
 
 const DEFAULT_NON_HIERARCHICAL_DEPT_NAME_ANALYSIS = "Kosztorys Ogółem";
 const DEFAULT_UNASSIGNED_DEPT_NAME_ANALYSIS = "Dział (Pozycje nieprzypisane)";
@@ -101,7 +102,7 @@ const AnalysisModule = {
             try { Chart.register(ChartDataLabels); }
             catch (e) { console.warn("AnalysisModule: Nie udało się zarejestrować ChartDataLabels.", e); }
         } else { console.warn('AnalysisModule: Chart.js lub ChartDataLabels nie jest załadowany.'); }
-        console.log("Moduł Analizy (EazyKoszt 0.4.2) zainicjalizowany.");
+        console.log("Moduł Analizy (EazyKoszt 0.6.1D) zainicjalizowany.");
     },
 
     refreshAnalysis: async function() {
@@ -271,7 +272,7 @@ const AnalysisModule = {
         const sortedDepartmentNames = Object.keys(aggregatedData).sort((a, b) => {
             const deptA = aggregatedData[a];
             const deptB = aggregatedData[b];
-            if ((deptA.name === currentDefaultNonHIerarchicalDeptName || deptA.name === currentDefaultUnassignedDeptName) &&
+            if ((deptA.name === currentDefaultNonHierarchicalDeptName || deptA.name === currentDefaultUnassignedDeptName) &&
                 !(deptB.name === currentDefaultNonHierarchicalDeptName || deptB.name === currentDefaultUnassignedDeptName)) return 1;
             if (!(deptA.name === currentDefaultNonHierarchicalDeptName || deptA.name === currentDefaultUnassignedDeptName) &&
                 (deptB.name === currentDefaultNonHierarchicalDeptName || deptB.name === currentDefaultUnassignedDeptName)) return -1;
@@ -345,7 +346,7 @@ const AnalysisModule = {
                 const domRowRef = costTableBody.querySelector(`tr[data-row-id="${rowId}"]`);
                 const lp = domRowRef?.cells[1]?.textContent || "";
                 currentDepartmentNameForTable = `${lp} ${rowObject.text || '(Dział bez nazwy)'}`;
-                currentDepartmentColorForCatView = departmentColorsMap[rowId] || this.dataAccess.getNextDefaultDepartmentColor();
+                currentDepartmentColorForCatView = departmentColorsMap[rowId] || this.PREDEFINED_COLORS[0]; // Użyj pierwszego predefiniowanego jako fallback
             } else if (rowType === 'task') {
                 const quantity = rowObject.quantity; // Ilość z modelu
                 let normsM = [];
@@ -389,9 +390,11 @@ const AnalysisModule = {
                             const departmentKeyForCat = isHierarchicalView ? currentDepartmentNameForTable : DEFAULT_NON_HIERARCHICAL_DEPT_NAME_ANALYSIS;
 
                             if (!materialsByCategoryAndDepartment[matCatCode][departmentKeyForCat]) {
-                                // Użyj koloru bieżącego działu z kontekstu hierarchicznego, jeśli dostępny
-                                let colorToAssign = currentDepartmentColorForCatView;
-                                if (!isHierarchicalView) { // W trybie niehierarchicznym jest stały kolor
+                                // Inicjalizuj kolor dla działu, jeśli to pierwszy materiał w tym dziale w tej kategorii
+                                let colorToAssign = currentDepartmentColorForCatView; // Kolor z aktualnego działu
+                                if (!colorToAssign && isHierarchicalView) { // Jeśli dział nie miał koloru, użyj default
+                                    colorToAssign = this.PREDEFINED_COLORS[0];
+                                } else if (!isHierarchicalView) { // W trybie niehierarchicznym jest stały kolor
                                     colorToAssign = departmentColorsMap[DEFAULT_NON_HIERARCHICAL_DEPT_NAME_ANALYSIS] || this.dataAccess.getNextDefaultDepartmentColor();
                                 }
                                 materialsByCategoryAndDepartment[matCatCode][departmentKeyForCat] = { materials: {}, color: colorToAssign };
@@ -468,7 +471,7 @@ const AnalysisModule = {
 
                     if (!materialsByDepartment[targetDepartmentKey]) {
                         // Inicjalizuj wpis dla działu, jeśli jeszcze nie istnieje
-                        const targetDeptColor = isHierarchicalView ? (departmentColorsMap[currentDeptRowIdForColorDeptView] || this.dataAccess.getNextDefaultDepartmentColor()) : this.dataAccess.getNextDefaultDepartmentColor();
+                        const targetDeptColor = isHierarchicalView ? (departmentColorsMap[currentDeptRowIdForColorDeptView] || this.PREDEFINED_COLORS[0]) : this.PREDEFINED_COLORS[0]; // Użyj pierwszego predefiniowanego jako fallback
                         materialsByDepartment[targetDepartmentKey] = {materials: {}, color: targetDeptColor};
                     }
 
@@ -676,4 +679,4 @@ const AnalysisModule = {
     getAnalysisMaterialProfitContent: async function() { const title = "Analiza Zysku/Straty z Zakupu Materiałów"; if (!this.materialProfitDetailsContainer) return `<div class='print-page'><h1>${title}</h1><hr><p>Moduł analizy zysku materiałowego niedostępny.</p></div>`; if (!this.materialProfitDetailsContainer.querySelector('table')) { await this.renderMaterialProfitAnalysis(); } const tableContent = this.materialProfitDetailsContainer.querySelector('.material-analysis-table-wrapper')?.innerHTML || "<p>Brak danych do raportu zysku z materiałów.</p>"; return `<div class='print-page'><h1>${title}</h1><hr>${tableContent}</div>`; }
 };
 
-console.log("Moduł Analizy EazyKoszt 0.5.0 zdefiniowany.");
+console.log("Moduł Analizy EazyKoszt 0.6.1D zdefiniowany.");

@@ -1,6 +1,6 @@
-// Plik: EazyKoszt 0.4.2-style-configurator.js
+// Plik: EazyKoszt 0.6.1A-style-configurator.js
 // Opis: Moduł konfiguratora stylów dla EazyKoszt.
-// Wersja 0.4.2: Dodano opcję konfiguracji domyślnego tła dla wierszy pozycji.
+// Wersja 0.6.1A: Brak zmian w tym pliku.
 
 const StyleConfiguratorModule = {
     STORAGE_KEY_STYLES: 'eazykoszt_userStyles_v0_3_0',
@@ -37,7 +37,7 @@ const StyleConfiguratorModule = {
         if (this.applyBtn) this.applyBtn.addEventListener('click', () => this.saveStyles());
         if (this.resetBtn) this.resetBtn.addEventListener('click', () => this.resetStyles());
         this.loadStyles();
-        console.log("StyleConfiguratorModule (EazyKoszt 0.4.2) zainicjalizowany.");
+        console.log("StyleConfiguratorModule (EazyKoszt 0.6.1A) zainicjalizowany.");
     },
     generateKeyForInput: function(input) {
         if (!input) return null;

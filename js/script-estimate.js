@@ -1,21 +1,21 @@
-// Plik: EazyKoszt 0.4.2-script-estimate.js
+// Plik: EazyKoszt 0.6.1B-script-estimate.js
 // Opis: Logika związana z tabelą kosztorysu, w tym dodawanie wierszy,
 //       obliczenia wartości, obsługa zdarzeń w tabeli, przeciąganie i upuszczanie,
 //       oraz dynamiczne kolorowanie wierszy.
-// Wersja 0.4.2: Zmiany w logice kolorowania wierszy - domyślnie bez koloru, dziedziczenie i odcienie.
-//               Logika zapobiegania pustym pozycjom.
-//               Ulepszenia UX przy edycji opisu pozycji z katalogu.
+// Wersja 0.6.1B: Upewnienie się, że 'draggedRow' nie jest ponownie deklarowane.
+//               Poprawki błędów w funkcji `getDomDragAndDropBlock`.
 
 // ==========================================================================
 // SEKCJA 0: Zmienne globalne specyficzne dla tego modułu
 // ==========================================================================
 let isDropdownInteraction = false;
+// draggedRow jest już zadeklarowane globalnie w script-core.js i używane jako zmienna globalna
 
 // ==========================================================================
 // SEKCJA 1: INICJALIZACJA MODUŁU
 // ==========================================================================
 async function initEstimateLogic() {
-    console.log("Inicjalizacja logiki kosztorysu (EazyKoszt 0.4.2-script-estimate.js)...");
+    console.log("Inicjalizacja logiki kosztorysu (EazyKoszt 0.6.1B-script-estimate.js)...");
 
     if (addRowBtn) {
         addRowBtn.addEventListener('click', async () => {
@@ -105,7 +105,7 @@ async function initEstimateLogic() {
         costTableBody.addEventListener('click', (event) => {
             const clickedRow = event.target.closest('tr');
             const indicatorId = typeof INDICATOR_ROW_ID !== 'undefined' ? INDICATOR_ROW_ID : 'temp-insert-indicator';
-            if (clickedRow && costTableBody.contains(clickedRow) && !event.target.closest('.col-actions') && clickedRow.id !== indicatorId) {
+            if (clickedRow && costTableBody && costTableBody.contains(clickedRow) && !event.target.closest('.col-actions') && clickedRow.id !== indicatorId) {
                 if (lastClickedRow && lastClickedRow !== clickedRow) {
                     lastClickedRow.classList.remove('last-clicked-row-highlight');
                 }
@@ -768,7 +768,7 @@ async function renderCostTable(model) {
                         && model.rows.slice(model.rows.indexOf(r) + 1, model.rows.indexOf(parentSpecialRowObject)).every(sr => sr.rowType !== 'department')); // Znajdź nadrzędny dział
                     if (parentDeptRowObject && model.departmentColors[parentDeptRowObject.rowId]) {
                         const parentDeptColor = model.departmentColors[parentDeptRowObject.rowId];
-                        let subDeptCounter = 0; // Ponownie oblicz indeks poddziału dla odcienia
+                        let subDeptCounter = 0;
                         let j = (parentDeptRowObject ? model.rows.findIndex(r => r.rowId === parentDeptRowObject.rowId) : -1) + 1;
                         while (j < model.rows.findIndex(r => r.rowId === parentSpecialRowObject.rowId)) {
                             if (model.rows[j].rowType === 'subdepartment') {
@@ -1872,7 +1872,8 @@ function handleQuantityInputChange(inputElement) {
     }
 }
 
-let draggedRow = null; // To jest element DOM wiersza, który jest przeciągany
+// let draggedRow = null; // To jest element DOM wiersza, który jest przeciągany
+// Zmieniono: draggedRow jest już zadeklarowane globalnie w script-core.js
 
 function handleDragStart(e) {
     if (e.target.classList.contains('drag-handle')) {
@@ -1955,147 +1956,7 @@ function getDomDragAndDropBlock(startDomRow) {
             currentRow = currentRow.nextElementSibling;
         }
     }
-    return block;
-}
-
-function handleDragEnd() {
-    if (draggedRow) {
-        draggedRow.classList.remove('dragging');
-        const children = Array.from(costTableBody.querySelectorAll('.dragging-child'));
-        children.forEach(child => child.classList.remove('dragging-child'));
-    }
-    draggedRow = null;
-    document.querySelectorAll('.drag-over').forEach(ind => ind.classList.remove('drag-over'));
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    const targetRow = e.target.closest('tr');
-    const indicatorId = typeof INDICATOR_ROW_ID !== 'undefined' ? INDICATOR_ROW_ID : 'temp-insert-indicator';
-    if (targetRow && targetRow !== draggedRow && targetRow.id !== indicatorId && targetRow.parentElement === costTableBody) {
-        targetRow.classList.add('drag-over');
-    }
-}
-
-function handleDragLeave(e) {
-    const targetRow = e.target.closest('tr');
-    if (targetRow) {
-        targetRow.classList.remove('drag-over');
-    }
-}
-
-async function handleDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const dropTargetRow = e.target.closest('tr');
-    dropTargetRow?.classList.remove('drag-over');
-
-    if (!draggedRow || !dropTargetRow || draggedRow === dropTargetRow || dropTargetRow.parentElement !== costTableBody) {
-        handleDragEnd();
-        return;
-    }
-
-    const draggedBlockObjects = getDragAndDropBlock(draggedRow); // Pobierz obiekty z modelu
-    const draggedBlockIds = draggedBlockObjects.map(obj => obj.rowId); // ID obiektów do przeniesienia
-
-    // Znajdź docelowy wiersz w modelu
-    const dropTargetRowId = dropTargetRow.dataset.rowId;
-    const dropTargetIndex = currentEstimateModel.rows.findIndex(r => r.rowId === dropTargetRowId);
-
-    if (dropTargetIndex === -1) {
-        console.error("handleDrop: Nie znaleziono docelowego wiersza w modelu.");
-        handleDragEnd();
-        return;
-    }
-
-    // Sprawdź, czy przenoszony blok zawiera cel upuszczenia
-    if (draggedBlockIds.includes(dropTargetRowId)) {
-        console.warn("Nie można upuścić elementu nadrzędnego na jego element podrzędny (w ramach tego samego bloku).");
-        showNotification("Nie można przenieść działu/poddziału do jego wnętrza.", "warning");
-        handleDragEnd();
-        return;
-    }
-
-    // Skopiuj aktualną tablicę wierszy z modelu
-    let updatedRows = [...currentEstimateModel.rows];
-
-    // Najpierw usuń przenoszone elementy z ich obecnych pozycji
-    const rowsToRemove = [];
-    for (const id of draggedBlockIds) {
-        const idx = updatedRows.findIndex(r => r.rowId === id);
-        if (idx !== -1) {
-            rowsToRemove.push(updatedRows[idx]); // Zachowaj referencje do obiektów
-            updatedRows.splice(idx, 1); // Usuń je
-        }
-    }
-
-    // Ponownie znajdź indeks docelowy, ponieważ tablica `updatedRows` mogła się zmienić po usunięciu
-    let finalDropIndex = updatedRows.findIndex(r => r.rowId === dropTargetRowId);
-    if (finalDropIndex === -1) {
-        // Jeśli docelowy wiersz został usunięty (bo był częścią przenoszonego bloku, co jest sprawdzane, ale dla pewności),
-        // lub z jakiegoś powodu nie znaleziono, upuść na koniec.
-        finalDropIndex = updatedRows.length;
-    }
-
-    // Wstaw przeniesione elementy do nowej pozycji
-    updatedRows.splice(finalDropIndex, 0, ...rowsToRemove);
-
-    // Wywołaj centralną funkcję aktualizującą model i renderującą
-    await updateModelAndRender({ rows: updatedRows });
-
-    handleDragEnd(); // Czyści klasy CSS
-}
-
-// Zmieniono: Funkcja getDragAndDropBlock przyjmuje element DOM, ale zwraca obiekty z MODELU
-function getDragAndDropBlock(startDomRow) {
-    const block = [];
-    const startRowId = startDomRow.dataset.rowId;
-    const startRowType = startDomRow.dataset.rowType;
-
-    const startIndex = currentEstimateModel.rows.findIndex(r => r.rowId === startRowId);
-    if (startIndex === -1) return []; // Should not happen
-
-    block.push(currentEstimateModel.rows[startIndex]);
-
-    if (startRowType === 'department') {
-        let currentIndex = startIndex + 1;
-        while (currentIndex < currentEstimateModel.rows.length && currentEstimateModel.rows[currentIndex].rowType !== 'department') {
-            block.push(currentEstimateModel.rows[currentIndex]);
-            currentIndex++;
-        }
-    } else if (startRowType === 'subdepartment') {
-        let currentIndex = startIndex + 1;
-        while (currentIndex < currentEstimateModel.rows.length && currentEstimateModel.rows[currentIndex].rowType === 'task') {
-            // Aby upewnić się, że zadanie należy do TEGO poddziału, musielibyśmy mieć parentId w modelu
-            // Na razie: zakładamy, że zadania podrzędne są zaraz po poddziale i nie ma innych poddziałów/działów
-            // Bardziej precyzyjnie: sprawdź, czy następny element jest nadal "dzieckiem" tego samego poziomu hierarchii.
-            // Będzie to wymagać przejścia przez model, aby upewnić się, że nie natrafiamy na inny poddział/dział wyższego poziomu
-            const nextRowInModel = currentEstimateModel.rows[currentIndex];
-            if (nextRowInModel.rowType === 'task') {
-                 // Sprawdź, czy to zadanie należy do tego samego bloku działu/poddziału
-                 let currentBlockParent = null;
-                 let tempIdx = currentIndex -1;
-                 while(tempIdx >=0) {
-                     if (currentEstimateModel.rows[tempIdx].rowType === 'department' || currentEstimateModel.rows[tempIdx].rowType === 'subdepartment') {
-                         currentBlockParent = currentEstimateModel.rows[tempIdx];
-                         break;
-                     }
-                     tempIdx--;
-                 }
-
-                 if (currentBlockParent && currentBlockParent.rowId === startRowId) {
-                     block.push(nextRowInModel);
-                     currentIndex++;
-                 } else {
-                     break; // Zadanie należy do innego bloku (np. wyższego poziomu lub następnego poddziału)
-                 }
-
-            } else {
-                break; // Natrafiliśmy na dział lub poddział
-            }
-        }
-    }
     return block; // Zwracamy tablicę obiektów z modelu
 }
 
-console.log("Moduł logiki kosztorysu (EazyKoszt 0.4.2-script-estimate.js - Ulepszenia UX) załadowany.");
+console.log("Moduł logiki kosztorysu (EazyKoszt 0.6.1B-script-estimate.js - Ulepszenia UX) załadowany.");
