@@ -489,9 +489,14 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
             let confirmedAction = false;
             await new Promise(resolve => {
                 showConfirmNotification(`Dane pozycji "${newDesc}" różnią się od pozycji katalogowej "${baseCatalogTask.description}".<br><br><b>[OK]</b> = Zapisz zmiany jako NOWĄ pozycję w katalogu (lub zaktualizuj istniejącą o tym samym opisie, jeśli jest Twoja).<br><b>[Anuluj]</b> = Zapisz zmiany tylko dla TEGO WIERSZA w kosztorysie (jako modyfikacja lokalna).`,
-                () => { saveToCatalogInstead = true; confirmedAction = true; resolve(); },
-                () => { saveToCatalogInstead = false; confirmedAction = true; resolve(); }
-                );
+                // Poprawiono: upewnij się, że nawiasy i przecinki są prawidłowe
+                async () => { // Callback dla OK
+                    saveToCatalogInstead = true; confirmedAction = true; resolve();
+                },
+                async () => { // Callback dla Anuluj
+                    saveToCatalogInstead = false; confirmedAction = true; resolve();
+                }
+                ); // <-- Upewnij się, że ten nawias zamykający jest na końcu wywołania showConfirmNotification
             });
             if (!confirmedAction && !saveToCatalogInstead) return false;
         }
@@ -499,9 +504,14 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
         let confirmedAction = false;
         await new Promise(resolve => {
             showConfirmNotification(`Opis "${newDesc}" nie pasuje do żadnej znanej pozycji katalogowej lub jest to nowa pozycja lokalna.<br><br><b>[OK]</b> = Zapisz jako NOWĄ pozycję w katalogu.<br><b>[Anuluj]</b> = Zapisz zmiany tylko dla TEGO WIERSZA w kosztorysie.`,
-            () => { saveToCatalogInstead = true; confirmedAction = true; resolve(); },
-            () => { saveToCatalogInstead = false; confirmedAction = true; resolve(); }
-            );
+            // Poprawiono: upewnij się, że nawiasy i przecinki są prawidłowe
+            async () => { // Callback dla OK
+                saveToCatalogInstead = true; confirmedAction = true; resolve();
+            },
+            async () => { // Callback dla Anuluj
+                saveToCatalogInstead = false; confirmedAction = true; resolve();
+            }
+            ); // <-- Upewnij się, że ten nawias zamykający jest na końcu wywołania showConfirmNotification
         });
         if (!confirmedAction && !saveToCatalogInstead) return false;
     }
@@ -540,24 +550,17 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
         let newOrUpdatedCatalogTaskId;
 
         if (existingWithSameDesc) {
-            let confirmedAction = false; // Musi być zadeklarowane tutaj, aby było dostępne w resolve
-            await new Promise(resolve => {
+            let confirmedOverwrite = false;
+            await new Promise(resolveConfirm => {
+                const confirmMessage = existingWithSameDesc.isPredefined
+                    ? `Pozycja katalogowa "${newDesc}" jest predefiniowana. Czy na pewno chcesz ją NADPISAĆ własnymi danymi? Zmiany będą widoczne we wszystkich miejscach jej użycia.`
+                    : `Pozycja katalogowa "${newDesc}" (Twoja własna) już istnieje w tej branży i dziale. Nadpisać ją nowymi danymi?`;
                 showConfirmNotification(confirmMessage,
-                    // Pierwszy callback (dla OK)
-                    async () => { // Zmieniono: dodano 'async' bo resolve() to Promise
-                        saveToCatalogInstead = true;
-                        confirmedAction = true;
-                        resolve();
-                    },
-                    // Drugi callback (dla Anuluj)
-                    async () => { // Zmieniono: dodano 'async' bo resolve() to Promise
-                        saveToCatalogInstead = false;
-                        confirmedAction = true;
-                        resolve();
-                    }
+                    () => { confirmedOverwrite = true; resolveConfirm(true); },
+                    () => { resolveConfirm(false); }
                 );
             });
-            if (!confirmedAction && !saveToCatalogInstead) return false;
+            if (!confirmedOverwrite) return false;
 
             catalogTaskData.id = existingWithSameDesc.id;
             catalogTaskData.createdAt = existingWithSameDesc.createdAt || new Date().toISOString();
@@ -621,7 +624,6 @@ async function _updateEstimateRowFromModal(domRowElement) { // Przyjmuje element
 async function saveModalData() { if (!currentEditContext) { console.error("Brak kontekstu edycji przy próbie zapisu modala."); return false; } let success = false; if (currentEditContext === 'new_custom' || currentEditContext === 'edit_custom') { success = await _saveOrUpdateCatalogTask(currentEditContext === 'edit_custom', currentEditingRef); } else if (currentEditContext === 'edit_row') { success = await _updateEstimateRowFromModal(currentEditingRef); } else { showNotification("Błąd zapisu. Nieznany kontekst edycji.", 'error'); return false; } // Zmieniono: updateModelAndRender jest już wywoływane w _saveOrUpdateCatalogTask i _updateEstimateRowFromModal
     return success; }
 async function compareMaterialNorms(localNormsWithName, catalogNormsWithId) { if (!Array.isArray(localNormsWithName) && !Array.isArray(catalogNormsWithId)) return localNormsWithName === catalogNormsWithId; if (!Array.isArray(localNormsWithName) || !Array.isArray(catalogNormsWithId)) return true; if (localNormsWithName.length !== catalogNormsWithId.length) return true; if (localNormsWithName.length === 0 && catalogNormsWithId.length === 0) return false; const localNormsProcessed = []; for (const ln of localNormsWithName) { if (!ln.name) return true; const mat = await dbService.getItemByIndex(MATERIALS_CATALOG_STORE_NAME, 'name', ln.name); if (!mat) return true; localNormsProcessed.push({ materialId: mat.id, quantity: ln.quantity, unit: ln.unit || mat.unit }); } const sortedLocal = [...localNormsProcessed].sort((a, b) => a.materialId - b.materialId); const sortedCatalog = [...catalogNormsWithId].sort((a, b) => a.materialId - b.materialId); for (let i = 0; i < sortedLocal.length; i++) { if (sortedLocal[i].materialId !== sortedCatalog[i].materialId || sortedLocal[i].quantity !== sortedCatalog[i].quantity || (sortedLocal[i].unit || 'j.m.') !== (sortedCatalog[i].unit || 'j.m.')) return true; } return false; }
-
 // ==========================================================================
 // SEKCJA 6: OBSŁUGA MODALA DANYCH OGÓLNYCH KOSZTORYSU (bez zmian)
 // ==========================================================================
