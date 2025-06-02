@@ -1478,3 +1478,21 @@ async function initApp() {
         if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
         if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
         if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglonsole.log("Plik js/analysis.js (Wersja 0.6.1D) zdefiniowany.");
+// ==========================================================================
+// SEKCJA 11: GŁÓWNY PUNKT WEJŚCIA APLIKACJI (DOMContentLoaded)
+// ==========================================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log(`DOM Content Loaded. Start skryptu ${APP_VERSION}...`);
+    let localCatalogImporterInstance;
+    try {
+        // ... (kod inicjalizujący) ...
+        await dbService.openDB();
+        // ...
+        await initApp(); // <-- Tutaj wywoływana jest główna funkcja inicjalizująca
+        // ...
+        if (typeof initEstimateLogic === 'function') await initEstimateLogic(); // <-- Inicjalizuje logikę kosztorysu
+        // ...
+    } catch (error) {
+        // ... (obsługa błędów) ...
+    }
+});
