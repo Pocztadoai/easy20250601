@@ -1,9 +1,7 @@
 // Plik: EazyKoszt 0.6.1E-script-core.js
 // Opis: Rdzeń aplikacji EazyKoszt.
-// Wersja 0.6.1E: Poprawka TypeError w showNotification i upewnienie się o spójności.
-console.log("DEBUG: script-core.js - Plik rozpoczyna ładowanie.");
-// Tutaj można przetestować konkretne zmienne
-// console.log("DEBUG: BRANCHES:", typeof BRANCHES, BRANCHES);
+// Wersja 0.6.1E: Poprawka TypeError w showNotification (document.classList.add).
+
 // ==========================================================================
 // SEKCJA 1: STAŁE GLOBALNE I KONFIGURACJA
 // ==========================================================================
@@ -200,7 +198,7 @@ function getContrastTextColor(hexBackgroundColor) {
 
 
 // ==========================================================================
-// SEKCJA 3.2: SYSTEM POWIADOMIEŃ
+// SEKCJA 3.2: SYSTEM POWIADOMIEN
 // ==========================================================================
 // ... (bez zmian) ...
 function showNotification(message, type = 'info', duration = 5000) {
@@ -745,6 +743,7 @@ async function initDBEstimateVersions() {
         };
         request.onsuccess = (event) => {
             dbEstimateVersions = event.target.result;
+            console.log(`Baza danych "${request.result.name}" otwarta pomyślnie (wersja: ${request.result.version}).`); // Użyj request.result.name/version
             console.log("Baza danych IndexedDB (wersje) otwarta pomyślnie.");
             resolve(dbEstimateVersions);
         };
@@ -1012,7 +1011,7 @@ async function performAutoSave() {
         console.log("Autozapis pominięty (wyłączony lub trwa przywracanie stanu).");
         return;
     }
-    console.log("Rozpoczynam autozapis...");
+    console.log("Rozpoczynam autozapisu...");
     try {
         await _internalSaveCurrentEstimateAsVersion(true);
     } catch (error) {
@@ -1251,7 +1250,7 @@ const handleContextMenuAction = async (event) => {
                 const rowIndexToDelete = currentEstimateModel.rows.findIndex(r => r.rowId === targetRowId);
                 if (rowIndexToDelete === -1) {
                     console.error("handleContextMenuAction: Nie znaleziono wiersza w modelu do usunięcia.");
-                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", 'error');
+                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", "error");
                     return;
                 }
 
@@ -1478,35 +1477,4 @@ async function initApp() {
 
         if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
         if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
-        if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglądu'; }); }
-        if(undoBtn) undoBtn.addEventListener('click', undo); if(redoBtn) redoBtn.addEventListener('click', redo);
-        if (scrollToTopBtn) { scrollToTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }); }
-        document.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey) { if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if(undoBtn && !undoBtn.disabled) undo(); } else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); if(redoBtn && !redoBtn.disabled) redo(); } } });
-        if (customContextMenu) { document.addEventListener('contextmenu', showCustomContextMenu); customContextMenu.addEventListener('click', handleContextMenuAction); }
-        document.addEventListener('click', (event) => { if (customContextMenu && customContextMenu.style.display === 'block' && !customContextMenu.contains(event.target)) hideCustomContextMenu(); if (activeDropdown && activeSearchInput && !activeSearchInput.contains(event.target) && !activeDropdown.contains(event.target) && !event.target.closest('.suggestions-dropdown')) if(typeof hideAllDropdowns === 'function') hideAllDropdowns(); const isAddButton = event.target.closest('#add-row-btn') || event.target.closest('#add-department-btn') || event.target.closest('#add-subdepartment-btn'); const isIndicator = event.target.closest(`#${INDICATOR_ROW_ID}`); if (!isAddButton && !isIndicator) removeInsertIndicator(); if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex' && !colorPaletteDiv.contains(event.target) && !event.target.classList.contains('color-picker-icon')) { colorPaletteDiv.remove();} });
-        window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (activeDropdown && typeof hideAllDropdowns === 'function') hideAllDropdowns(); if (customContextMenu && customContextMenu.style.display === 'block') hideCustomContextMenu(); removeInsertIndicator(); if(notesModal && notesModal.style.display === 'block' && typeof closeNotesModal === 'function') closeNotesModal(); if(customTaskModal && customTaskModal.style.display === 'block' && typeof closeCustomTaskModal === 'function') closeCustomTaskModal(); if(materialSelectModal && materialSelectModal.style.display === 'block' && typeof closeMaterialSelectModal === 'function') closeMaterialSelectModal(); if(printSelectionModal && printSelectionModal.style.display === 'block' && typeof closePrintSelectionModal === 'function') closePrintSelectionModal(); if(estimateDetailsModal && estimateDetailsModal.style.display === 'block' && typeof closeEstimateDetailsModal === 'function') closeEstimateDetailsModal(); if(templatesModal && templatesModal.style.display === 'block' && typeof closeTemplatesModal === 'function') closeTemplatesModal(); if(confirmNotificationModal && confirmNotificationModal.style.display === 'block') { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); } if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex') { colorPaletteDiv.remove(); } } });
-
-        await initDBEstimateVersions();
-        initAutoSaveSettingsControls();
-        initUserActivityListeners(); // Rozpocznij śledzenie aktywności
-        startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
-
-        if (document.querySelector('.tab.active[data-tab="ustawienia"]')) {
-            if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
-        }
-
-        updateUndoRedoButtons();
-        // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); // USUNIĘTE: Teraz renderCostTable to robi
-        console.log(`%cPełna inicjalizacja ${APP_VERSION} zakończona.`, "color: green; font-weight: bold;");
-        saveToLocalStorage(STORAGE_KEYS.APP_VERSION_LS, APP_VERSION);
-    } catch (error) {
-        console.error("KRYTYCZNY BŁĄD INICJALIZACJI APLIKACJI:", error);
-        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działa.`;
-        if (error.message) { if (error.message.toLowerCase().includes("json")) errorMessageToUser += "\n\nMożliwy problem z formatem plików JSON. Sprawdź konsolę (F12)."; else if (error.message.toLowerCase().includes("dbservice") || error.message.toLowerCase().includes("catalogimporter") || error.message.toLowerCase().includes("indexeddb")) errorMessageToUser += "\n\nMożliwy problem z inicjalizacją bazy danych lub katalogów. Sprawdź konsolę (F12) i kolejność skryptów."; else if (error.message.toLowerCase().includes("dom") || error.message.toLowerCase().includes("getelementbyid") || error.message.toLowerCase().includes("not found in dom")) errorMessageToUser += "\n\nMożliwy problem ze znalezieniem elementu HTML. Sprawdź index.html i konsolę (F12)."; else if (error.message.toLowerCase().includes("is not defined")) errorMessageToUser += `\n\nProblem z dostępnością funkcji lub zmiennej (${error.message.split(' ')[0]}). Sprawdź konsolę (F12) i kolejność skryptów.`; } errorMessageToUser += "\n\nSprawdź konsolę (F12) po szczegóły.";
-        if (typeof showNotification === 'function' && notificationsContainer) { showNotification(errorMessageToUser.replace(/\n/g, "<br>"), 'error', 0); } else { alert(errorMessageToUser.replace(/\n\n/g, '\n')); }
-        if (document.body) { document.body.innerHTML = `<div style="padding: 20px; text-align: left; font-family: Arial, sans-serif; background-color: #ffebee; border: 2px solid #c62828; margin: 20px auto; max-width: 800px; border-radius: 8px;"><h1 style="color: #c62828;">Błąd Krytyczny Aplikacji EazyKoszt</h1><p>${errorMessageToUser.replace(/\n/g, "<br>")}</p></div>`;}
-    }
-    
-} // <-- TUTAJ KOŃCZY SIĘ FUNKCJA initApp
-console.log("DEBUG: script-core.js - Plik zakończył ładowanie.");
-console.log("Plik EazyKoszt 0.6.1A-script-core.js załadowany.");
+        if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglonsole.log("Plik js/analysis.js (Wersja 0.6.1D) zdefiniowany.");
