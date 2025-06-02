@@ -1506,7 +1506,7 @@ async function initApp() {
         if (typeof showNotification === 'function' && notificationsContainer) { showNotification(errorMessageToUser.replace(/\n/g, "<br>"), 'error', 0); } else { alert(errorMessageToUser.replace(/\n\n/g, '\n')); }
         if (document.body) { document.body.innerHTML = `<div style="padding: 20px; text-align: left; font-family: Arial, sans-serif; background-color: #ffebee; border: 2px solid #c62828; margin: 20px auto; max-width: 800px; border-radius: 8px;"><h1 style="color: #c62828;">Błąd Krytyczny Aplikacji EazyKoszt</h1><p>${errorMessageToUser.replace(/\n/g, "<br>")}</p></div>`;}
     }
-    document.addEventListener('DOMContentLoaded', () => { initApp(); });
+    
 } // <-- TUTAJ KOŃCZY SIĘ FUNKCJA initApp
 console.log("DEBUG: script-core.js - Plik zakończył ładowanie.");
 console.log("Plik EazyKoszt 0.6.1A-script-core.js załadowany.");
