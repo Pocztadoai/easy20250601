@@ -260,5 +260,3 @@ const AnalysisModule = {
         if (this.summaryProfitEl) this.summaryProfitEl.textContent = `${this.dataAccess.formatCurrency(data.profit)} zł`;
     }
 };
-
-console.log("Moduł Analizy (v0.6.1) EazyKoszt zdefiniowany.");
