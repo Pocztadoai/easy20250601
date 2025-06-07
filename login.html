@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie - EazyKoszt</title>
+    <link rel="stylesheet" href="login-style.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script> <!-- DODANO BRAKUJĄCY MODUŁ -->
+</head>
+<body>
+
+    <div id="auth-container">
+        <div class="auth-form-wrapper">
+            <h1 class="auth-title">EazyKoszt</h1>
+            <p id="auth-error-message" class="auth-error"></p>
+
+            <!-- Formularz Logowania -->
+            <form id="login-form" class="auth-form">
+                <h2>Zaloguj się</h2>
+                <div class="form-group">
+                    <label for="login-email">Email:</label>
+                    <input type="email" id="login-email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Hasło:</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="auth-button">Zaloguj</button>
+                <p class="auth-toggle">Nie masz konta? <a href="#" id="show-register">Zarejestruj się</a></p>
+            </form>
+
+            <!-- Formularz Rejestracji -->
+            <form id="register-form" class="auth-form" style="display: none;">
+                <h2>Utwórz konto</h2>
+                <div class="form-group">
+                    <label for="register-email">Email:</label>
+                    <input type="email" id="register-email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Hasło (min. 6 znaków):</label>
+                    <input type="password" id="register-password" required autocomplete="new-password">
+                </div>
+                 <div class="form-group">
+                    <label for="register-password-confirm">Powtórz hasło:</label>
+                    <input type="password" id="register-password-confirm" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="auth-button">Zarejestruj</button>
+                <p class="auth-toggle">Masz już konto? <a href="#" id="show-login">Zaloguj się</a></p>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Skrypty -->
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+
+</body>
+</html>

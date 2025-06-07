@@ -1,6 +1,6 @@
-// Plik: EazyKoszt 0.6.1E-script-core.js
+// Plik: EazyKoszt 0.4.2-script-core.js
 // Opis: Rdzeń aplikacji EazyKoszt.
-// Wersja 0.6.1E: Poprawka TypeError w showNotification (document.classList.add).
+// Wersja 0.4.2: Inteligentny autozapis reagujący na aktywność użytkownika.
 
 // ==========================================================================
 // SEKCJA 1: STAŁE GLOBALNE I KONFIGURACJA
@@ -10,9 +10,9 @@ const STORAGE_KEYS = {
     ESTIMATE_STATE: 'eazykoszt_estimateState_v0_1_0',
     LAST_BRANCH_FILTER: 'eazykoszt_lastBranchFilter_v0_3_0',
     TEMPLATES: 'eazykoszt_templates_v0_1_0',
-    APP_VERSION_LS: 'eazykoszt_appVersion_localStorage_v0_6_1E'
+    APP_VERSION_LS: 'eazykoszt_appVersion_localStorage_v0_4_2'
 };
-const APP_VERSION = "EazyKoszt 0.6.1E";
+const APP_VERSION = "EazyKoszt 0.4.2";
 const MAX_HISTORY_SIZE = 20;
 const MAX_ESTIMATE_VERSIONS = 30;
 const AUTO_SAVE_PREFIX = "Autozapis - ";
@@ -62,7 +62,7 @@ let costTableBody, grandTotalElement, addRowBtn, addDepartmentBtn, addSubDepartm
     previewEstimateDetailBtn, toggleStyleConfiguratorBtn, konfiguratorStyluContent,
     saveEstimateVersionBtn,
     editEstimateDetailsBtn, estimateDetailsModal, saveEstimateDetailsModalBtn, cancelEstimateDetailsModalBtn,
-    modalEstimateTitleInput, modalInvestmentLocationInput, modalInvestorInfoInput, modalContractorInfoInput, modalVatRateSelect, // Poprawiono: usunięto duplikację
+    modalEstimateTitleInput, modalInvestmentLocationInput, modalInvestorInfoInput, modalContractorInfoInput, modalVatRateSelect,
     estimateVersionsSelect, loadSelectedVersionBtn, deleteSelectedVersionBtn,
     customContextMenu,
     saveDepartmentTemplateBtn, saveEstimateTemplateBtn, openTemplatesModalBtn,
@@ -77,37 +77,30 @@ let costTableBody, grandTotalElement, addRowBtn, addDepartmentBtn, addSubDepartm
     colorPaletteDiv,
     autoSaveEnabledCheckbox, autoSaveIntervalSelect, autoSaveIntervalGroup;
 
-let currentNotesTargetRow = null; // Zmieniono: to będzie teraz rowId, a nie element DOM
+let currentNotesTargetRow = null;
 let selectedCsvFile = null;
 let activeDropdown = null;
 let activeSearchInput = null;
 let currentEditContext = null;
 let currentEditingRef = null;
 let targetMaterialInputRow = null;
-let draggedRow = null; // To jest element DOM wiersza, który jest przeciągany
-let chapterSums = {}; // Pozostaje, bo to są dane pochodne wyświetlane w DOM
+let draggedRow = null;
+let chapterSums = {};
 let historyStack = [];
 let redoStack = [];
 let isRestoringState = false;
 let materialSortColumn = 'name';
 let materialSortDirection = 'asc';
-let lastClickedRow = null; // To jest element DOM ostatnio klikniętego wiersza
-let contextMenuTargetRow = null; // To jest element DOM
+let lastClickedRow = null;
+let contextMenuTargetRow = null;
 let insertIndicator = null;
 let dbEstimateVersions;
 let currentConfirmCallback = null;
 let currentCancelCallback = null;
-// let departmentColors = {}; // USUNIĘTE: przeniesione do currentEstimateModel
+let departmentColors = {};
 let autoSaveTimerId = null;
 let userIdleTimerId = null; // Timer do śledzenia bezczynności użytkownika
 let isUserIdle = false; // Flaga wskazująca, czy użytkownik jest obecnie bezczynny
-
-// NOWA ZMIENNA: Centralny model danych dla kosztorysu
-let currentEstimateModel = {
-    rows: [], // Tablica obiektów reprezentujących wiersze (zadania, działy, poddziały)
-    departmentColors: {}, // Mapa kolorów dla działów/poddziałów (przeniesione z globalnej zmiennej)
-    isHierarchical: false // Tryb hierarchiczny (przeniesione z appState.getState)
-};
 
 // ==========================================================================
 // SEKCJA 3: FUNKCJE POMOCNICZE (OGÓLNE)
@@ -182,23 +175,13 @@ function getContrastTextColor(hexBackgroundColor) {
         return colorChannel <= 0.03928 ? colorChannel / 12.92 : Math.pow((colorChannel + 0.055) / 1.055, 2.4);
     };
     const lumR = sRGBtoLin(rgb.r);
-    const lumG = sRGBtoLin(rgb.b);
+    const lumG = sRGBtoLin(rgb.g);
     const lumB = sRGBtoLin(rgb.b);
     const luminance = 0.2126 * lumR + 0.7152 * lumG + 0.0722 * lumB;
     return luminance > 0.45 ? '#000000' : '#FFFFFF';
 }
-
-// USUNIĘTE FUNKCJE ZARZĄDZANIA KOLORAMI WIERSZY (przeniesione/zintegrowane z renderCostTable)
-// function applyRowColor() { /* ... */ }
-// function applyInheritedColors() { /* ... */ }
-// function applyTaskColorsUnderParent() { /* ... */ }
-// function reapplyAllRowColors() { /* ... */ }
-// function getParentDepartmentRow() { /* ... */ }
-// function getParentSubDepartmentRow() { /* ... */ }
-
-
 // ==========================================================================
-// SEKCJA 3.2: SYSTEM POWIADOMIEN
+// SEKCJA 3.2: SYSTEM POWIADOMIEŃ
 // ==========================================================================
 // ... (bez zmian) ...
 function showNotification(message, type = 'info', duration = 5000) {
@@ -213,7 +196,7 @@ function showNotification(message, type = 'info', duration = 5000) {
     iconSpan.classList.add('notification-icon');
     iconSpan.textContent = NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info;
     notification.appendChild(iconSpan);
-    const messageSpan = document.createElement('span'); // Poprawiono: document.createElement('span') zamiast document.classList.add
+    const messageSpan = document.createElement('span');
     messageSpan.classList.add('notification-message');
     messageSpan.innerHTML = message;
     notification.appendChild(messageSpan);
@@ -264,7 +247,7 @@ const appState = {
         currentVatDisplayValue: "23",
         workerRatesSettings: JSON.parse(JSON.stringify(DEFAULT_WORKER_RATES_SETTINGS)),
         useSameRateForAllSpecialists: true,
-        isHierarchicalMode: false, // Zmieniono: Główna kontrola trybu hierarchicznego jest teraz w currentEstimateModel
+        isHierarchicalMode: false,
         lastBranchFilter: '',
         defaultTaskRowBackgroundColor: null,
         autoSaveEnabled: true,
@@ -305,15 +288,6 @@ const appState = {
             this._state.defaultTaskRowBackgroundColor = savedStyles['--task-row-default-bg'];
         }
 
-        // Zmieniono: isHierarchicalMode w appState powinno być zsynchronizowane z currentEstimateModel
-        // Przy inicjalizacji appState, currentEstimateModel może jeszcze nie być w pełni załadowany/zsynchronizowany,
-        // dlatego ta synchronizacja jest bardziej krytyczna podczas ładowania estimateState
-        // Poniżej: appState.isHierarchicalMode będzie ustawiane przez restoreEstimateDisplayState
-        // lub loadEstimateState na podstawie currentEstimateModel.isHierarchical
-        if (typeof currentEstimateModel !== 'undefined') {
-             this._state.isHierarchicalMode = currentEstimateModel.isHierarchical;
-        }
-
         console.log("Zarządca stanu zainicjalizowany. Stan początkowy:", JSON.parse(JSON.stringify(this._state)));
     },
     saveState() { saveToLocalStorage(STORAGE_KEYS.APP_STATE, this._state); console.log("Stan aplikacji (APP_STATE) zapisany przez appState.saveState()"); },
@@ -344,61 +318,168 @@ const appState = {
 };
 
 // ==========================================================================
-// NOWA FUNKCJA: CENTRALNA AKTUALIZACJA MODELU I RENDEROWANIE UI
-// Opis: Ta funkcja jest punktem wejścia do modyfikacji stanu kosztorysu.
-//       Aktualizuje currentEstimateModel, wywołuje renderowanie UI,
-//       przelicza wartości i zapisuje stan.
-// ==========================================================================
-async function updateModelAndRender(newModelData) {
-    // Zapobiegaj wyzwalaniu podczas przywracania stanu
-    if (isRestoringState) return;
-
-    let modelChanged = false;
-    // Sprawdź, czy dane rows się zmieniły
-    if (newModelData.rows !== undefined && JSON.stringify(currentEstimateModel.rows) !== JSON.stringify(newModelData.rows)) {
-        currentEstimateModel.rows = JSON.parse(JSON.stringify(newModelData.rows)); // Głęboka kopia
-        modelChanged = true;
-    }
-    // Sprawdź i zaktualizuj departmentColors
-    if (newModelData.departmentColors !== undefined && JSON.stringify(currentEstimateModel.departmentColors) !== JSON.stringify(newModelData.departmentColors)) {
-        currentEstimateModel.departmentColors = JSON.parse(JSON.stringify(newModelData.departmentColors));
-        modelChanged = true;
-    }
-    // Sprawdź i zaktualizuj isHierarchical
-    if (newModelData.isHierarchical !== undefined && currentEstimateModel.isHierarchical !== newModelData.isHierarchical) {
-        currentEstimateModel.isHierarchical = newModelData.isHierarchical;
-        // Upewnij się, że appState też jest zaktualizowane (jeśli jest to źródło prawdy dla innych miejsc w UI)
-        appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true); // true, aby zapobiec pętli zapisu
-        modelChanged = true;
-    }
-
-    if (modelChanged) {
-        console.log("updateModelAndRender: Model kosztorysu zmieniony, ponowne renderowanie.");
-        if (typeof renderCostTable === 'function') {
-            await renderCostTable(currentEstimateModel); // Wywołaj renderowanie tabeli
-        }
-
-        // Upewnij się, że wszelkie obliczenia i zapisy są wywoływane po renderowaniu
-        // Te funkcje też muszą być dostosowane do operowania na modelu, a nie na DOM
-        await recalculateAllRowsAndTotals();
-        await saveEstimateState(); // Zapisz zaktualizowany model do localStorage
-        saveHistoryState(); // Zapisz aktualny stan do historii
-    } else {
-        console.log("updateModelAndRender: Model kosztorysu nie zmieniony.");
-    }
-}
-
-
-// ==========================================================================
 // SEKCJA 3.4: ZARZĄDZANIE KOLORAMI WIERSZY
 // ==========================================================================
-// USUNIĘTE: Funkcje applyRowColor, applyInheritedColors, applyTaskColorsUnderParent, reapplyAllRowColors
-// Ich logika została zintegrowana w renderCostTable.
-// Funkcje getParentDepartmentRow i getParentSubDepartmentRow również usunięto,
-// ponieważ ich głównym zastosowaniem było wspieranie dziedziczenia kolorów w DOM,
-// co teraz jest częścią logiki renderCostTable.
+// ... (bez zmian) ...
+function applyRowColor(row, baseColorHex, lightenPercent = 0) {
+    if (!row || !row.style) return;
 
-function openColorPalette(event, targetDomRow) { // Przyjmuje element DOM
+    const specialInput = row.querySelector('.special-row-input');
+    const taskSearchInput = row.querySelector('.task-search-input');
+    const allCells = Array.from(row.cells);
+
+    if (!baseColorHex || baseColorHex === 'transparent' || baseColorHex === 'inherit' || baseColorHex === null) {
+        let defaultBgColor = ''; 
+        let defaultTextColor = ''; 
+
+        if (row.dataset.rowType === 'task') {
+            const customTaskBg = appState.getState('defaultTaskRowBackgroundColor');
+            if (customTaskBg && customTaskBg !== 'transparent' && customTaskBg !== 'inherit') {
+                defaultBgColor = customTaskBg;
+                defaultTextColor = getContrastTextColor(customTaskBg);
+            }
+        }
+        
+        row.style.backgroundColor = defaultBgColor;
+        row.style.color = defaultTextColor;
+        if (specialInput) specialInput.style.color = defaultTextColor;
+        if (taskSearchInput) taskSearchInput.style.color = defaultTextColor;
+        allCells.forEach(cell => {
+            cell.style.color = defaultBgColor ? defaultTextColor : ''; 
+        });
+        return;
+    }
+
+    const finalColor = lightenPercent > 0 ? lightenHexColor(baseColorHex, lightenPercent) : baseColorHex;
+    const textColor = getContrastTextColor(finalColor);
+
+    row.style.backgroundColor = finalColor;
+    row.style.color = textColor; 
+    
+    allCells.forEach(cell => {
+        cell.style.color = textColor;
+    });
+
+    if (specialInput) specialInput.style.color = textColor;
+    if (taskSearchInput) taskSearchInput.style.color = textColor;
+}
+function applyInheritedColors(startDepartmentRow) {
+    if (!startDepartmentRow || startDepartmentRow.dataset.rowType !== 'department') return;
+
+    const departmentRowId = startDepartmentRow.dataset.rowId;
+    const departmentBaseColor = departmentColors[departmentRowId] || null;
+
+    applyRowColor(startDepartmentRow, departmentBaseColor, 0);
+
+    let currentRow = startDepartmentRow.nextElementSibling;
+    let subDepartmentCounter = 0; 
+
+    while (currentRow) {
+        const currentRowType = currentRow.dataset.rowType;
+        const currentRowId = currentRow.dataset.rowId;
+
+        if (currentRowType === 'department') {
+            break; 
+        }
+
+        if (currentRowType === 'subdepartment') {
+            let subDeptColorToApply = departmentColors[currentRowId] || null; 
+
+            if (!subDeptColorToApply && departmentBaseColor) { 
+                const lightenIndex = subDepartmentCounter % SUBDEPARTMENT_LIGHTEN_PERCENTAGES.length;
+                const lightenPercentage = SUBDEPARTMENT_LIGHTEN_PERCENTAGES[lightenIndex];
+                subDeptColorToApply = lightenHexColor(departmentBaseColor, lightenPercentage);
+            }
+            applyRowColor(currentRow, subDeptColorToApply, 0);
+            subDepartmentCounter++; 
+
+            applyTaskColorsUnderParent(currentRow, subDeptColorToApply);
+
+        } else if (currentRowType === 'task') {
+            let isDirectlyUnderDept = false;
+            if(currentRow.previousElementSibling === startDepartmentRow) {
+                isDirectlyUnderDept = true;
+            } else {
+                let prevSiblingCheck = currentRow.previousElementSibling;
+                let foundParentSubDept = false;
+                while(prevSiblingCheck && prevSiblingCheck !== startDepartmentRow) {
+                    if (prevSiblingCheck.dataset.rowType === 'subdepartment') {
+                        foundParentSubDept = true;
+                        break;
+                    }
+                    prevSiblingCheck = prevSiblingCheck.previousElementSibling;
+                }
+                if (!foundParentSubDept && prevSiblingCheck === startDepartmentRow) {
+                    isDirectlyUnderDept = true;
+                }
+            }
+            
+            if(isDirectlyUnderDept) {
+                applyRowColor(currentRow, departmentBaseColor, 90);
+            }
+        }
+        currentRow = currentRow.nextElementSibling;
+    }
+}
+function applyTaskColorsUnderParent(parentRow, parentEffectiveColor) {
+    let taskRow = parentRow.nextElementSibling;
+    while (taskRow) {
+        const taskRowType = taskRow.dataset.rowType;
+        if (taskRowType === 'department' || taskRowType === 'subdepartment') {
+            break; 
+        }
+        if (taskRowType === 'task') {
+            applyRowColor(taskRow, parentEffectiveColor, 90);
+        }
+        taskRow = taskRow.nextElementSibling;
+    }
+}
+function reapplyAllRowColors() {
+    if (!costTableBody) return;
+    const rows = Array.from(costTableBody.querySelectorAll('tr'));
+    
+    rows.forEach(row => {
+        const rowType = row.dataset.rowType;
+        const rowId = row.dataset.rowId;
+
+        if (rowType === 'department') {
+            applyInheritedColors(row); 
+        } else if (rowType === 'subdepartment') {
+            const parentDept = getParentDepartmentRow(row);
+            if (!parentDept) { 
+                let subDeptOwnColor = departmentColors[rowId] || null;
+                applyRowColor(row, subDeptOwnColor, 0);
+                applyTaskColorsUnderParent(row, subDeptOwnColor);
+            }
+        } else if (rowType === 'task') {
+            const parentDept = getParentDepartmentRow(row);
+            const parentSubDept = getParentSubDepartmentRow(row);
+            if (!parentDept && !parentSubDept) { 
+                applyRowColor(row, null, 0); 
+            }
+        }
+    });
+}
+function getParentDepartmentRow(row) {
+    let prev = row.previousElementSibling;
+    while(prev) {
+        if (prev.dataset.rowType === 'department') return prev;
+        prev = prev.previousElementSibling;
+    }
+    return null;
+}
+function getParentSubDepartmentRow(row, allowSameLevelDept = false) {
+    let prev = row.previousElementSibling;
+    while(prev) {
+        if (prev.dataset.rowType === 'subdepartment') return prev;
+        if (prev.dataset.rowType === 'department') {
+            return allowSameLevelDept ? prev : null; 
+        }
+        prev = prev.previousElementSibling;
+    }
+    return null;
+}
+function openColorPalette(event, targetRow) {
     event.stopPropagation();
     if (colorPaletteDiv && colorPaletteDiv.parentElement) {
         colorPaletteDiv.remove();
@@ -407,19 +488,26 @@ function openColorPalette(event, targetDomRow) { // Przyjmuje element DOM
     colorPaletteDiv = document.createElement('div');
     colorPaletteDiv.className = 'color-palette';
 
-    const rowId = targetDomRow.dataset.rowId;
-
     const noColorOption = document.createElement('div');
     noColorOption.className = 'color-palette-item no-color';
     noColorOption.title = 'Usuń własny kolor (styl domyślny)';
-    noColorOption.addEventListener('click', async () => {
-        // Zaktualizuj departmentColors w modelu
-        const updatedDepartmentColors = { ...currentEstimateModel.departmentColors };
-        delete updatedDepartmentColors[rowId]; // Usuń kolor
-
-        // Wywołaj updateModelAndRender, aby odświeżyć całą tabelę z nowymi kolorami
-        await updateModelAndRender({ departmentColors: updatedDepartmentColors });
-
+    noColorOption.addEventListener('click', () => {
+        const rowId = targetRow.dataset.rowId;
+        departmentColors[rowId] = null; 
+        
+        if (targetRow.dataset.rowType === 'department') {
+            applyInheritedColors(targetRow);
+        } else if (targetRow.dataset.rowType === 'subdepartment') {
+            const parentDept = getParentDepartmentRow(targetRow);
+            if (parentDept) {
+                applyInheritedColors(parentDept);
+            } else { 
+                applyRowColor(targetRow, null, 0);
+                applyTaskColorsUnderParent(targetRow, null);
+            }
+        }
+        
+        if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
         colorPaletteDiv.remove();
     });
     colorPaletteDiv.appendChild(noColorOption);
@@ -430,14 +518,23 @@ function openColorPalette(event, targetDomRow) { // Przyjmuje element DOM
         colorItem.style.backgroundColor = hexColor;
         colorItem.dataset.color = hexColor;
         colorItem.title = hexColor;
-        colorItem.addEventListener('click', async () => {
-            // Zaktualizuj departmentColors w modelu
-            const updatedDepartmentColors = { ...currentEstimateModel.departmentColors };
-            updatedDepartmentColors[rowId] = hexColor;
+        colorItem.addEventListener('click', () => {
+            const rowId = targetRow.dataset.rowId;
+            departmentColors[rowId] = hexColor;
+            
+            if (targetRow.dataset.rowType === 'department') {
+                applyInheritedColors(targetRow);
+            } else if (targetRow.dataset.rowType === 'subdepartment') {
+                 const parentDept = getParentDepartmentRow(targetRow);
+                 if (parentDept) {
+                     applyInheritedColors(parentDept); 
+                 } else { 
+                     applyRowColor(targetRow, hexColor, 0);
+                     applyTaskColorsUnderParent(targetRow, hexColor);
+                 }
+            }
 
-            // Wywołaj updateModelAndRender, aby odświeżyć całą tabelę z nowymi kolorami
-            await updateModelAndRender({ departmentColors: updatedDepartmentColors });
-
+            if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
             colorPaletteDiv.remove();
         });
         colorPaletteDiv.appendChild(colorItem);
@@ -483,7 +580,7 @@ function getWorkerCategoryName(categoryCode) { const currentRatesSettings = appS
 // ==========================================================================
 const removeInsertIndicator = () => { if (insertIndicator && insertIndicator.parentNode) { insertIndicator.parentNode.removeChild(insertIndicator); } insertIndicator = null; };
 const getTableColumnCount = () => { const header = document.querySelector('#cost-table thead tr'); return header ? header.cells.length : 9; };
-const showInsertIndicator = (type) => { removeInsertIndicator(); if (!costTableBody) return; if (type === 'subdepartment' && !currentEstimateModel.isHierarchical) return; insertIndicator = document.createElement('tr'); insertIndicator.id = INDICATOR_ROW_ID; insertIndicator.classList.add('insert-indicator-row'); insertIndicator.setAttribute('aria-hidden', 'true'); const cell = insertIndicator.insertCell(); cell.colSpan = getTableColumnCount(); cell.classList.add('insert-indicator-cell'); let calculatedInsertBeforeNode = null; if (!lastClickedRow || !costTableBody.contains(lastClickedRow)) { if (type === 'department' && currentEstimateModel.isHierarchical) calculatedInsertBeforeNode = costTableBody.firstChild; else calculatedInsertBeforeNode = null; } else { const refType = lastClickedRow.dataset.rowType; if (type === 'department') { let currentDeptBlockStart = lastClickedRow; if (refType !== 'department') { let prev = lastClickedRow.previousElementSibling; while (prev) { if (prev.dataset.rowType === 'department') { currentDeptBlockStart = prev; break; } prev = prev.previousElementSibling; } if (currentDeptBlockStart === lastClickedRow || !currentDeptBlockStart || currentDeptBlockStart.dataset.rowType !== 'department') currentDeptBlockStart = null; } if (currentDeptBlockStart) { calculatedInsertBeforeNode = currentDeptBlockStart.nextElementSibling; while (calculatedInsertBeforeNode && calculatedInsertBeforeNode.dataset.rowType !== 'department') calculatedInsertBeforeNode = calculatedInsertBeforeNode.nextElementSibling; } else calculatedInsertBeforeNode = costTableBody.firstChild; } else if (type === 'subdepartment') { if (refType === 'department') calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; else if (refType === 'subdepartment') { calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; while (calculatedInsertBeforeNode && calculatedInsertBeforeNode.dataset.rowType === 'task') calculatedInsertBeforeNode = calculatedInsertBeforeNode.nextElementSibling; } else if (refType === 'task') calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; else calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; } else if (type === 'task') { if(currentEstimateModel.isHierarchical && costTableBody.rows.length === 0 && !costTableBody.querySelector('tr[data-row-type="department"]')) calculatedInsertBeforeNode = costTableBody.firstChild; else calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; } } costTableBody.insertBefore(insertIndicator, calculatedInsertBeforeNode);};
+const showInsertIndicator = (type) => { removeInsertIndicator(); if (!costTableBody) return; if (type === 'subdepartment' && !appState.getState('isHierarchicalMode')) return; insertIndicator = document.createElement('tr'); insertIndicator.id = INDICATOR_ROW_ID; insertIndicator.classList.add('insert-indicator-row'); insertIndicator.setAttribute('aria-hidden', 'true'); const cell = insertIndicator.insertCell(); cell.colSpan = getTableColumnCount(); cell.classList.add('insert-indicator-cell'); let calculatedInsertBeforeNode = null; if (!lastClickedRow || !costTableBody.contains(lastClickedRow)) { if (type === 'department' && appState.getState('isHierarchicalMode')) calculatedInsertBeforeNode = costTableBody.firstChild; else calculatedInsertBeforeNode = null; } else { const refType = lastClickedRow.dataset.rowType; if (type === 'department') { let currentDeptBlockStart = lastClickedRow; if (refType !== 'department') { let prev = lastClickedRow.previousElementSibling; while (prev) { if (prev.dataset.rowType === 'department') { currentDeptBlockStart = prev; break; } prev = prev.previousElementSibling; } if (currentDeptBlockStart === lastClickedRow || !currentDeptBlockStart || currentDeptBlockStart.dataset.rowType !== 'department') currentDeptBlockStart = null; } if (currentDeptBlockStart) { calculatedInsertBeforeNode = currentDeptBlockStart.nextElementSibling; while (calculatedInsertBeforeNode && calculatedInsertBeforeNode.dataset.rowType !== 'department') calculatedInsertBeforeNode = calculatedInsertBeforeNode.nextElementSibling; } else calculatedInsertBeforeNode = costTableBody.firstChild; } else if (type === 'subdepartment') { if (refType === 'department') calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; else if (refType === 'subdepartment') { calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; while (calculatedInsertBeforeNode && calculatedInsertBeforeNode.dataset.rowType === 'task') calculatedInsertBeforeNode = calculatedInsertBeforeNode.nextElementSibling; } else if (refType === 'task') calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; else calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; } else if (type === 'task') { if(appState.getState('isHierarchicalMode') && costTableBody.rows.length === 0 && !costTableBody.querySelector('tr[data-row-type="department"]')) calculatedInsertBeforeNode = costTableBody.firstChild; else calculatedInsertBeforeNode = lastClickedRow.nextElementSibling; } } costTableBody.insertBefore(insertIndicator, calculatedInsertBeforeNode);};
 
 // ==========================================================================
 // SEKCJA 6: LOGIKA ZAKŁADEK I NAWIGACJI
@@ -494,101 +591,49 @@ const setupTabs = () => { document.querySelectorAll('.tab').forEach(tab => { tab
 // ==========================================================================
 // SEKCJA 7: FUNKCJE ZARZĄDZANIA KOSZTORYSEM (LICZBA SŁOWNIE, HISTORIA, STAWKI)
 // ==========================================================================
-const liczbaSlownie = (liczba) => {
-    if(typeof liczba !== 'number' || isNaN(liczba)) return "nieprawidłowa liczba";
-
-    const _j = ["", "jeden", "dwa", "trzy", "cztery", "pięć", "sześć", "siedem", "osiem", "dziewięć"];
-    const _n = ["dziesięć", "jedenaście", "dwanaście", "trzynaście", "czternaście", "piętnaście", "szesnaście", "siedemnaście", "osiemnaście", "dziewiętnaście"];
-    const _d = ["", "dziesięć", "dwadzieścia", "trzydzieści", "czterdzieści", "pięćdziesiąt", "sześćdziesiąt", "siedemdziesiąt", "osiemdziesiąt", "dziewięćdziesiąt"];
-    const _s = ["", "sto", "dwieście", "trzysta", "czterysta", "pięćset", "sześćset", "siedemset", "osiemset", "dziewięćset"];
-    const _g = [
-        ["", "", ""],
-        ["tysiąc", "tysiące", "tysięcy"],
-        ["milion", "miliony", "milionów"],
-        ["miliard", "miliardy", "miliardów"],
-        ["bilion", "biliony", "bilionów"],
-        ["biliard", "biliardy", "biliardów"],
-        ["trylion", "tryliony", "trylionów"]
-    ];
-
-    liczba = Math.round(liczba * 100) / 100;
-    const [zlI, grI] = String(liczba.toFixed(2)).split('.').map(Number);
-
-    if (zlI === 0 && grI === 0) return "zero złotych zero groszy";
-
-    let r = [];
-    if (zlI !== 0) {
-        let gg = 0;
-        let l = zlI;
-        while (l > 0) {
-            let s = Math.floor((l % 1000) / 100);
-            let d = Math.floor((l % 100) / 10);
-            let j = Math.floor(l % 10);
-            let k = l % 100;
-
-            if (d === 1 && j > 0) d = 0; // Obsługa 10-19
-            else k = 0; // Jeśli nie 10-19, to k nie jest używane dla dziesiątek
-
-            let o = 2; // Domyślnie końcówka "ów"
-            if (j === 1 && s === 0 && d === 0 && k === 0) o = 0; // "tysiąc", "milion"
-            else if (j >= 2 && j <= 4 && !(k >= 12 && k <= 14)) o = 1; // "tysiące", "miliony"
-
-            let c = [];
-            if (s > 0) c.push(_s[s]);
-            if (k > 0) c.push(_n[k % 10]);
-            if (d > 0) c.push(_d[d]);
-            if (j > 0 && k === 0) c.push(_j[j]);
-
-            if (c.length > 0) {
-                if (gg > 0) {
-                    if (gg === 1 && o === 0 && c.length === 1 && c[0] === 'jeden') c = []; // "jeden tysiąc" -> "tysiąc"
-                    c.push(_g[gg][o]);
-                }
-                r.unshift(c.join(" "));
-            }
-            l = Math.floor(l / 1000);
-            gg++;
-        }
-    }
-
-    let zlS = r.join(" ");
-    let zlF;
-    const ldZ = zlI % 10;
-    const ld2Z = zlI % 100;
-    if (zlI === 1) zlF = "złoty";
-    else if (ldZ >= 2 && ldZ <= 4 && !(ld2Z >= 12 && ld2Z <= 14)) zlF = "złote";
-    else zlF = "złotych";
-    if (zlS === "") zlS = "zero";
-
-    let grS = "";
-    if (grI > 0) {
-        let gj = grI % 10;
-        let gd = Math.floor(grI / 10);
-        let cg = [];
-        if (gd > 0) cg.push(_d[gd]);
-        if (gj > 0) cg.push(_j[gj]);
-        grS = cg.join(" ");
-    } else {
-        grS = "zero";
-    }
-
-    let grF;
-    const ldG = grI % 10;
-    const ld2G = grI % 100;
-    if (grI === 1) grF = "grosz";
-    else if (ldG >= 2 && ldG <= 4 && !(ld2G >= 12 && ld2G <= 14)) grF = "grosze";
-    else grF = "groszy";
-
-    return `${zlS} ${zlF} ${grS} ${grF}`;
-};
+const liczbaSlownie = (liczba) => { if(typeof liczba!=='number'||isNaN(liczba))return"nieprawidłowa liczba"; const _j=["","jeden","dwa","trzy","cztery","pięć","sześć","siedem","osiem","dziewięć"],_n=["dziesięć","jedenaście","dwanaście","trzynaście","czternaście","piętnaście","szesnaście","siedemnaście","osiemnaście","dziewiętnaście"],_d=["","dziesięć","dwadzieścia","trzydzieści","czterdzieści","pięćdziesiąt","sześćdziesiąt","siedemdziesiąt","osiemdziesiąt","dziewięćdziesiąt"],_s=["","sto","dwieście","trzysta","czterysta","pięćset","sześćset","siedemset","osiemset","dziewięćset"],_g=[["","",""],["tysiąc","tysiące","tysięcy"],["milion","miliony","milionów"],["miliard","miliardy","miliardów"],["bilion","biliony","bilionów"],["biliard","biliardy","biliardów"],["trylion","tryliony","trylionów"]]; liczba=Math.round(liczba*100)/100; const[zlI,grI]=String(liczba.toFixed(2)).split('.').map(Number); if(zlI===0&&grI===0)return"zero złotych zero groszy"; let r=[]; if(zlI!==0){let gg=0,l=zlI; while(l>0){let s=Math.floor((l%1000)/100),d=Math.floor((l%100)/10),j=Math.floor(l%10),k=l%100; if(d===1&&j>0)d=0;else k=0; let o=2; if(j===1&&s===0&&d===0&&k===0)o=0;else if(j>=2&&j<=4)o=1; let c=[]; if(s>0)c.push(_s[s]); if(k>0)c.push(_n[k%10]); if(d>0)c.push(_d[d]); if(j>0&&k===0)c.push(_j[j]); if(c.length>0){if(gg>0){if(gg===1&&o===0&&c.length===1&&c[0]==='jeden')c=[]; c.push(_g[gg][o])} r.unshift(c.join(" "))} l=Math.floor(l/1000);gg++ }} let zlS=r.join(" "); let zlF; const ldZ=zlI%10,ld2Z=zlI%100; if(zlI===1)zlF="złoty";else if(ldZ>=2&&ldZ<=4&&!(ld2Z>=12&&ld2Z<=14))zlF="złote";else zlF="złotych"; if(zlS==="")zlS="zero"; let grS=""; if(grI>0){let gj=grI%10,gk=grI%100; if(grI>=10&&grI<=19)grS=_n[grI-10]; else{let gd=Math.floor(grI/10);let cg=[];if(gd>0)cg.push(_d[gd]);if(gj>0)cg.push(_j[gj]);grS=cg.join(" ")}}else grS="zero"; let grF; const ldG=grI%10,ld2G=grI%100; if(grI===1)grF="grosz";else if(ldG>=2&&ldG<=4&&!(ld2G>=12&&ld2G<=14))grF="grosze";else grF="groszy"; return`${zlS} ${zlF} ${grS} ${grF}`};
 
 // PRZENIESIONE FUNKCJE HISTORII I STANU KOSZTORYSU
 const updateUndoRedoButtons = () => { if (undoBtn) undoBtn.disabled = historyStack.length === 0; if (redoBtn) redoBtn.disabled = redoStack.length === 0; };
 
 const getCurrentEstimateDisplayState = () => {
-    // Zmieniono: Zwracamy głęboką kopię aktualnego modelu kosztorysu.
-    // Model jest teraz jedynym źródłem prawdy dla stanu wyświetlania.
-    return JSON.parse(JSON.stringify(currentEstimateModel));
+    const estimateRows = [];
+    if (costTableBody) {
+        costTableBody.querySelectorAll('tr').forEach(row => {
+            if (row.id === INDICATOR_ROW_ID) return;
+            const rowType = row.dataset.rowType || 'task';
+            const rowData = { rowType: rowType, notes: row.dataset.notes || "", rowId: row.dataset.rowId || null };
+            if (rowType === 'task') {
+                const taskCatalogId = row.dataset.taskCatalogId ? parseInt(row.dataset.taskCatalogId) : null;
+                const quantityStr = row.querySelector('.quantity-input')?.value;
+                const quantity = evaluateMathExpression(quantityStr);
+                const localDesc = row.dataset.localDesc || row.querySelector('.task-search-input')?.value.trim() || '';
+                if (taskCatalogId || localDesc || quantity > 0) {
+                    rowData.taskCatalogId = taskCatalogId;
+                    rowData.quantity = quantity;
+                    if (row.dataset.localDesc && row.dataset.localDesc !== localDesc) rowData.localDesc = row.dataset.localDesc;
+                    else if (!taskCatalogId && localDesc) rowData.localDesc = localDesc;
+                    if (row.dataset.localUnit) rowData.localUnit = row.dataset.localUnit;
+                    if (row.dataset.localNormR !== undefined) rowData.localNormR = parseFloat(row.dataset.localNormR);
+                    if (row.dataset.localNormsM) {
+                        try { rowData.localNormsM = JSON.parse(row.dataset.localNormsM); }
+                        catch(e){ console.warn("Błąd parsowania localNormsM:", row.dataset.localNormsM, e); }
+                    }
+                    if (row.dataset.localWorkerCategory) rowData.localWorkerCategory = row.dataset.localWorkerCategory;
+                    estimateRows.push(rowData);
+                }
+            } else if (rowType === 'department' || rowType === 'subdepartment') {
+                const textInput = row.querySelector('.special-row-input');
+                rowData.text = textInput ? textInput.value.trim() : '';
+                estimateRows.push(rowData);
+            }
+        });
+    }
+    return {
+        rows: estimateRows,
+        isHierarchical: appState.getState('isHierarchicalMode'),
+        departmentColors: JSON.parse(JSON.stringify(departmentColors))
+    };
 };
 
 const restoreEstimateDisplayState = async (state) => {
@@ -598,56 +643,56 @@ const restoreEstimateDisplayState = async (state) => {
     }
     isRestoringState = true;
     try {
-        // Ustawienie globalnego obiektu modelu
-        currentEstimateModel.rows = state.rows ? JSON.parse(JSON.stringify(state.rows)) : [];
-        currentEstimateModel.departmentColors = state.departmentColors ? JSON.parse(JSON.stringify(state.departmentColors)) : {};
-        currentEstimateModel.isHierarchical = state.isHierarchical === undefined ? false : state.isHierarchical;
+        if (typeof addRow !== 'function' || typeof addSpecialRow !== 'function') {
+            console.error("Krytyczny błąd: Funkcje addRow lub addSpecialRow nie są dostępne globalnie.");
+            isRestoringState = false;
+            return;
+        }
+        appState.setState('isHierarchicalMode', state.isHierarchical === undefined ? false : state.isHierarchical, true);
+        departmentColors = state.departmentColors ? JSON.parse(JSON.stringify(state.departmentColors)) : {};
 
-        // Zmieniono: Aktualizacja appState.isHierarchicalMode, aby pozostałe części UI były spójne
-        appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true);
+        if (costTableBody) costTableBody.innerHTML = '';
+        chapterSums = {};
 
-        // Wywołaj nową funkcję do renderowania całej tabeli na podstawie zaktualizowanego modelu
-        if (typeof renderCostTable === 'function') {
-            await renderCostTable(currentEstimateModel);
-        } else {
-            console.warn("renderCostTable nie jest jeszcze zdefiniowany. Częściowe odtworzenie stanu.");
-            if (costTableBody) costTableBody.innerHTML = '';
+        if (appState.getState('isHierarchicalMode') && state.rows.length === 0 && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') {
+            ensureFirstRowIsDepartmentIfNeeded(true, true);
         }
 
-        // Poniższe wywołania pozostają (operują na DOM, ale ich celem nie jest samo renderowanie wierszy)
+        for (const rowData of state.rows) {
+            if (rowData.rowType === 'department') {
+                if(appState.getState('isHierarchicalMode')) addSpecialRow('department', rowData.text || '', true, true, rowData.rowId, null, rowData.notes);
+            } else if (rowData.rowType === 'subdepartment') {
+                if(appState.getState('isHierarchicalMode')) addSpecialRow('subdepartment', rowData.text || '', true, true, rowData.rowId, null, rowData.notes);
+            } else if (rowData.rowType === 'task') {
+                let taskDataForAddRow = { ...rowData };
+                if (rowData.taskCatalogId) {
+                    const catalogTask = await dbService.getItem(TASKS_CATALOG_STORE_NAME, rowData.taskCatalogId);
+                    if (catalogTask && !rowData.localDesc) taskDataForAddRow.description = catalogTask.description;
+                    else if (!catalogTask && !rowData.localDesc) {
+                        console.warn(`Nie znaleziono zadania o ID ${rowData.taskCatalogId}. Używam "Brak zadania w katalogu".`);
+                        taskDataForAddRow.description = "Błąd: Brak zadania w katalogu";
+                    }
+                } else if (rowData.localDesc) {
+                    taskDataForAddRow.description = rowData.localDesc;
+                }
+                await addRow(taskDataForAddRow, true);
+            }
+        }
+
         if (typeof renumberRows === 'function') renumberRows();
         if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-        // USUNIĘTO: reapplyAllRowColors() - teraz jest częścią renderCostTable
-        // USUNIĘTO: Pętla iterująca po rows i dodająca wiersze do DOM - zastąpiona przez renderCostTable
+        if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
 
     } catch (error) {
         console.error("Błąd przywracania stanu wyświetlania kosztorysu:", error);
     } finally {
         isRestoringState = false;
-        appState.saveState(); // Zapisz zaktualizowany appState
-        // saveEstimateState() jest teraz wywoływane przez updateModelAndRender,
-        // które z kolei jest wywoływane przez restoreEstimateDisplayState
-        // (przez to, że setting isRestoringState = false i potem currentEstimateModel się 'zmienia')
-        // Dzieje się tak, ponieważ currentEstimateModel zostaje zaktualizowany na początku restoreEstimateDisplayState,
-        // a to powoduje, że updateModelAndRender zostanie wywołane po wyjściu z isRestoringState = true.
-        // Jeśli nie chcemy, aby restoreEstimateDisplayState wywoływało saveEstimateState,
-        // to updateModelAndRender powinno mieć dodatkową flagę `preventSaveHistory`.
-        // Na razie zostawiamy, zakłada to, że wczytanie stanu powinno zapisać go jako najnowszy.
+        appState.saveState();
+        if (typeof saveEstimateState === 'function') saveEstimateState();
     }
 };
 
-const saveHistoryState = () => {
-    if (isRestoringState) return;
-    const currentState = getCurrentEstimateDisplayState(); // Pobiera z currentEstimateModel
-    if (historyStack.length > 0) {
-        const previousState = historyStack[historyStack.length - 1];
-        if (JSON.stringify(previousState) === JSON.stringify(currentState)) return;
-    }
-    historyStack.push(currentState);
-    if (historyStack.length > MAX_HISTORY_SIZE) historyStack.shift();
-    redoStack = [];
-    updateUndoRedoButtons();
-};
+const saveHistoryState = () => { if (isRestoringState) return; const currentState = getCurrentEstimateDisplayState(); if (historyStack.length > 0) { const previousState = historyStack[historyStack.length - 1]; if (JSON.stringify(previousState) === JSON.stringify(currentState)) return; } historyStack.push(currentState); if (historyStack.length > MAX_HISTORY_SIZE) historyStack.shift(); redoStack = []; updateUndoRedoButtons(); };
 const undo = async () => { if (historyStack.length > 0) { const currentState = getCurrentEstimateDisplayState(); redoStack.push(currentState); const previousState = historyStack.pop(); await restoreEstimateDisplayState(previousState); updateUndoRedoButtons(); }};
 const redo = async () => { if (redoStack.length > 0) { const currentState = getCurrentEstimateDisplayState(); historyStack.push(currentState); if (historyStack.length > MAX_HISTORY_SIZE) historyStack.shift(); const nextState = redoStack.pop(); await restoreEstimateDisplayState(nextState); updateUndoRedoButtons(); }};
 
@@ -662,29 +707,7 @@ async function updateDynamicSpecialistRatesVisibility() {
         return;
     }
     const usedCategories = new Set();
-    // Zmieniono: Iterujemy po currentEstimateModel.rows
-    const allTaskRowsInModel = currentEstimateModel.rows.filter(r => r.rowType === 'task');
-    const taskIdsToFetchDetails = new Set();
-    const rowDetails = [];
-    for (const rowObject of allTaskRowsInModel) { // Iterujemy po modelu
-        const localCat = rowObject.localWorkerCategory;
-        const catId = rowObject.taskCatalogId;
-        rowDetails.push({ localCat, catId });
-        if (!localCat && catId) taskIdsToFetchDetails.add(catId);
-    }
-    const taskDefinitions = {};
-    if (taskIdsToFetchDetails.size > 0) {
-        const tasksFromDb = await dbService.getItemsByIds(TASKS_CATALOG_STORE_NAME, Array.from(taskIdsToFetchDetails));
-        tasksFromDb.forEach(taskDef => { if(taskDef) taskDefinitions[taskDef.id] = taskDef; });
-    }
-    for (const detail of rowDetails) {
-        let workerCat = detail.localCat;
-        if (!workerCat && detail.catId) {
-            const taskDef = taskDefinitions[detail.catId];
-            workerCat = taskDef?.workerCategory || 'ogolnobudowlany';
-        } else if (!workerCat) workerCat = 'ogolnobudowlany';
-        if (workerCat && workerCat !== 'ogolnobudowlany') usedCategories.add(workerCat);
-    }
+    if (costTableBody) { const rows = costTableBody.querySelectorAll('tr[data-row-type="task"]'); const taskIdsToFetchDetails = new Set(); const rowDetails = []; for (const row of rows) { const localCat = row.dataset.localWorkerCategory; const catId = row.dataset.taskCatalogId ? parseInt(row.dataset.taskCatalogId) : null; rowDetails.push({ localCat, catId }); if (!localCat && catId) taskIdsToFetchDetails.add(catId); } const taskDefinitions = {}; if (taskIdsToFetchDetails.size > 0) { const tasksFromDb = await dbService.getItemsByIds(TASKS_CATALOG_STORE_NAME, Array.from(taskIdsToFetchDetails)); tasksFromDb.forEach(taskDef => { if(taskDef) taskDefinitions[taskDef.id] = taskDef; });} for (const detail of rowDetails) { let workerCat = detail.localCat; if (!workerCat && detail.catId) { const taskDef = taskDefinitions[detail.catId]; workerCat = taskDef?.workerCategory || 'ogolnobudowlany'; } else if (!workerCat) workerCat = 'ogolnobudowlany'; if (workerCat && workerCat !== 'ogolnobudowlany') usedCategories.add(workerCat); } }
 
     let visibleSpecialists = 0;
     Object.keys(currentWorkerRatesSettings).forEach(catCode => {
@@ -743,13 +766,12 @@ async function initDBEstimateVersions() {
         };
         request.onsuccess = (event) => {
             dbEstimateVersions = event.target.result;
-            console.log(`Baza danych "${request.result.name}" otwarta pomyślnie (wersja: ${request.result.version}).`); // Użyj request.result.name/version
             console.log("Baza danych IndexedDB (wersje) otwarta pomyślnie.");
             resolve(dbEstimateVersions);
         };
         request.onupgradeneeded = (event) => {
             const dbInstance = event.target.result;
-            if (event.oldVersion < ESTIMATE_VERSIONS_DB_VERSION) {
+            if (event.oldVersion < ESTIMATE_VERSIONS_DB_VERSION) { 
                 if (!dbInstance.objectStoreNames.contains(VERSION_STORE_NAME)) {
                     const store = dbInstance.createObjectStore(VERSION_STORE_NAME, { keyPath: VERSION_STORE_SCHEMA.keyPath, autoIncrement: VERSION_STORE_SCHEMA.autoIncrement });
                      console.log(`Magazyn obiektów "${VERSION_STORE_NAME}" utworzony w IndexedDB (wersje).`);
@@ -759,7 +781,7 @@ async function initDBEstimateVersions() {
                            console.log(`  Utworzono indeks "${idx.name}" dla magazynu "${VERSION_STORE_NAME}".`);
                         }
                     });
-                } else {
+                } else { 
                     const transaction = event.target.transaction;
                     const store = transaction.objectStore(VERSION_STORE_NAME);
                      VERSION_STORE_SCHEMA.indexes.forEach(idx => {
@@ -783,7 +805,7 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
         const versionBaseName = currentEstimateTitle ? `Wersja dla "${currentEstimateTitle}"` : 'Wersja kosztorysu';
         const defaultName = `${versionBaseName} z ${new Date().toLocaleString('pl-PL', {dateStyle: 'short', timeStyle: 'short'})}`;
         versionName = prompt("Podaj nazwę dla tej wersji kosztorysu (opcjonalnie):", defaultName);
-        if (versionName === null) return null;
+        if (versionName === null) return null; 
     }
 
     if (!dbEstimateVersions) {
@@ -791,7 +813,7 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
         return null;
     }
 
-    const currentFullEstimateState = getCurrentEstimateDisplayState(); // Pobiera z currentEstimateModel
+    const currentFullEstimateState = getCurrentEstimateDisplayState();
     const estimateDataForVersion = {
         rows: currentFullEstimateState.rows,
         departmentColors: currentFullEstimateState.departmentColors,
@@ -810,14 +832,14 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
         name: versionName.trim() || `Wersja ${new Date().getTime()}`,
         timestamp: new Date().getTime(),
         estimateData: estimateDataForVersion,
-        isAuto: isAutoSave
+        isAuto: isAutoSave 
     };
-
+    
     return new Promise((resolve, reject) => {
         const transaction = dbEstimateVersions.transaction([VERSION_STORE_NAME], "readwrite");
         const store = transaction.objectStore(VERSION_STORE_NAME);
         const addRequest = store.add(versionRecord);
-
+        
         transaction.oncomplete = async () => {
             try {
                 const countTrans = dbEstimateVersions.transaction([VERSION_STORE_NAME], "readonly");
@@ -827,8 +849,8 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
                 allVersionsReq.onsuccess = async () => {
                     const allVersions = allVersionsReq.result;
                     if (allVersions.length > MAX_ESTIMATE_VERSIONS) {
-                        allVersions.sort((a, b) => a.timestamp - b.timestamp);
-
+                        allVersions.sort((a, b) => a.timestamp - b.timestamp); 
+                        
                         let numToDelete = allVersions.length - MAX_ESTIMATE_VERSIONS;
                         const idsToDelete = [];
 
@@ -838,7 +860,7 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
                             idsToDelete.push(autoVersion.id);
                             numToDelete--;
                         }
-
+                        
                         if (numToDelete > 0) {
                              const manualVersions = allVersions.filter(v => !v.isAuto);
                              for (const manualVersion of manualVersions) {
@@ -849,7 +871,7 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
                                 }
                              }
                         }
-
+                        
                         if (numToDelete > 0) {
                             for(const version of allVersions) {
                                 if (numToDelete <= 0) break;
@@ -868,13 +890,13 @@ async function _internalSaveCurrentEstimateAsVersion(isAutoSave = false) {
                             console.log(`Usunięto ${idsToDelete.length} najstarszych wersji, aby zachować limit ${MAX_ESTIMATE_VERSIONS}.`);
                         }
                     }
-                    if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
+                    if (typeof displayEstimateVersions === 'function') await displayEstimateVersions(); 
                     if (isAutoSave) {
                         showNotification("Kosztorys zapisany automatycznie.", 'info', 2500);
                     } else {
                         showNotification(`Wersja "${versionRecord.name}" została zapisana.`, 'success');
                     }
-                    resolve(addRequest.result);
+                    resolve(addRequest.result); 
                 };
                 allVersionsReq.onerror = (e) => {
                     console.error("Błąd pobierania wszystkich wersji do ograniczenia liczby:", e.target.error);
@@ -904,8 +926,8 @@ async function getAllEstimateVersionsFromDB() {
     return new Promise((resolve, reject) => {
         const transaction = dbEstimateVersions.transaction([VERSION_STORE_NAME], "readonly");
         const store = transaction.objectStore(VERSION_STORE_NAME);
-        const getAllRequest = store.index("timestamp").getAll();
-        getAllRequest.onsuccess = () => resolve(getAllRequest.result.reverse());
+        const getAllRequest = store.index("timestamp").getAll(); 
+        getAllRequest.onsuccess = () => resolve(getAllRequest.result.reverse()); 
         getAllRequest.onerror = (event) => {
             console.error("Błąd odczytu wersji:", event.target.error);
             reject(event.target.error);
@@ -946,36 +968,30 @@ async function loadEstimateFromVersionRecord(versionRecord) {
         showNotification("Nieprawidłowe dane wersji do wczytania.", 'error');
         return;
     }
-
+    
     showConfirmNotification(`Wczytać wersję "${versionRecord.name}"?<br>Obecny kosztorys i jego ustawienia zostaną nadpisane.<br>Katalogi główne pozostaną bez zmian.`, async () => {
         if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState();
         isRestoringState = true;
-
+        
         const estimateData = versionRecord.estimateData;
-
-        // Zmieniono: Ustawiamy currentEstimateModel na podstawie wczytanych danych
-        currentEstimateModel.rows = estimateData.rows ? JSON.parse(JSON.stringify(estimateData.rows)) : [];
-        currentEstimateModel.departmentColors = estimateData.departmentColors ? JSON.parse(JSON.stringify(estimateData.departmentColors)) : {};
-        currentEstimateModel.isHierarchical = estimateData.isHierarchicalMode === undefined ? false : estimateData.isHierarchicalMode;
-
+        departmentColors = estimateData.departmentColors ? JSON.parse(JSON.stringify(estimateData.departmentColors)) : {};
 
         appState.setState('estimateTitle', estimateData.estimateTitle || '', true);
         appState.setState('investmentLocation', estimateData.investmentLocation || '', true);
         appState.setState('investorInfo', estimateData.investorInfo || '', true);
         appState.setState('contractorInfo', estimateData.contractorInfo || '', true);
         appState.setState('vatRate', estimateData.vatRate !== undefined ? estimateData.vatRate : '23', true);
-        // isHierarchicalMode w appState jest teraz ustawiane przez updateModelAndRender, gdy currentEstimateModel.isHierarchical się zmienia
-        // appState.setState('isHierarchicalMode', estimateData.isHierarchicalMode === undefined ? false : estimateData.isHierarchicalMode, true);
+        appState.setState('isHierarchicalMode', estimateData.isHierarchicalMode === undefined ? false : estimateData.isHierarchicalMode, true);
         appState.setState('useSameRateForAllSpecialists', estimateData.useSameRateForAllSpecialists === undefined ? true : estimateData.useSameRateForAllSpecialists, true);
         if (estimateData.workerRatesSettings) appState.setState('workerRatesSettings', estimateData.workerRatesSettings, true);
-        else if (estimateData.laborRates) {
+        else if (estimateData.laborRates) { 
             const newRates = JSON.parse(JSON.stringify(appState.getState('workerRatesSettings') || DEFAULT_WORKER_RATES_SETTINGS));
             Object.keys(estimateData.laborRates).forEach(catCode => {
                 if (newRates[catCode] && estimateData.laborRates[catCode].hasOwnProperty('rate')) newRates[catCode].rate = parseFloat(estimateData.laborRates[catCode].rate) || 0;
             });
             appState.setState('workerRatesSettings', newRates, true);
         }
-        appState.saveState(); // Zapisuje zaktualizowany appState
+        appState.saveState();
 
         if (modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
         const vatDisplay = document.getElementById('modal-vat-rate-display');
@@ -983,23 +999,23 @@ async function loadEstimateFromVersionRecord(versionRecord) {
         if (useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
         const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
         if (ogolnobudowlanyRateInput) setNumericInputValue(ogolnobudowlanyRateInput, appState.getState('workerRatesSettings').ogolnobudowlany?.rate || 0);
-        // activateHierarchicalMode(appState.getState('isHierarchicalMode')); // Ta funkcja już jest wywoływana przez updateModelAndRender
+        if (typeof activateHierarchicalMode === 'function') activateHierarchicalMode(appState.getState('isHierarchicalMode'));
         if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.applyUserStylesFromObject && estimateData.userStyles) {
             StyleConfiguratorModule.applyUserStylesFromObject(estimateData.userStyles);
         }
-
-        // Zmieniono: Wywołujemy renderCostTable dla zaktualizowanego currentEstimateModel
-        if (typeof renderCostTable === 'function') {
-             await renderCostTable(currentEstimateModel);
+        
+        if (typeof restoreEstimateDisplayState === 'function') {
+             await restoreEstimateDisplayState({
+                rows: estimateData.rows || [],
+                isHierarchical: appState.getState('isHierarchicalMode'),
+                departmentColors: departmentColors 
+            });
         }
 
         if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility();
         isRestoringState = false;
         showNotification(`Wersja "${versionRecord.name}" kosztorysu została wczytana.`, 'info');
         if (typeof activateTab === 'function') activateTab('kosztorys');
-
-        // Ponieważ isRestoringState zmienia się na false, a currentEstimateModel został zmieniony,
-        // updateModelAndRender zostanie automatycznie wywołane, co spowoduje zapis historii i localStorage.
     });
 }
 
@@ -1011,7 +1027,7 @@ async function performAutoSave() {
         console.log("Autozapis pominięty (wyłączony lub trwa przywracanie stanu).");
         return;
     }
-    console.log("Rozpoczynam autozapisu...");
+    console.log("Rozpoczynam autozapis...");
     try {
         await _internalSaveCurrentEstimateAsVersion(true);
     } catch (error) {
@@ -1102,7 +1118,7 @@ function initAutoSaveSettingsControls() {
         if (appState.getState('autoSaveEnabled')) {
             isUserIdle = false; // Zakładamy, że zmiana ustawień to aktywność
             resetUserIdleTimer();
-            startAutoSaveTimer();
+            startAutoSaveTimer(); 
         }
     });
 }
@@ -1111,56 +1127,109 @@ function initAutoSaveSettingsControls() {
 // SEKCJA 8: INICJALIZACJA I ZARZĄDZANIE STANEM KOSZTORYSU
 // ==========================================================================
 const populateCommonUnitsDatalist = () => { if(!commonUnitsDatalist) return; commonUnitsDatalist.innerHTML = ''; const units = ["m2", "m3", "mb", "szt.", "kpl.", "kg", "t", "l", "rg", "mg", "godz.", "pkt", "moduł", "obwód", "cykl", "puszka"]; units.forEach(unit => { const option = document.createElement('option'); option.value = unit; commonUnitsDatalist.appendChild(option); }); };
-// renumberRows przeniesiono do script-estimate.js
+const renumberRows = () => {
+    let currentDeptNumber = 0;
+    let currentSubDeptNumber = 1;
+    let currentTaskNumberInSubDept = 1;
+    let currentTaskNumberInDept = 1;
+    let globalTaskCounter = 0;
+
+    if (!costTableBody) return;
+    const rows = Array.from(costTableBody.querySelectorAll('tr'));
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.id === INDICATOR_ROW_ID) continue;
+        const lpCell = row.cells[1];
+        if (!lpCell) continue;
+
+        const rowType = row.dataset.rowType;
+
+        if (!appState.getState('isHierarchicalMode')) {
+            if (rowType === 'task') {
+                globalTaskCounter++;
+                lpCell.textContent = `${globalTaskCounter}.`;
+            } else {
+                lpCell.textContent = '-';
+            }
+        } else {
+            if (rowType === 'department') {
+                currentDeptNumber++;
+                currentSubDeptNumber = 1;
+                currentTaskNumberInDept = 1;
+                lpCell.textContent = `${currentDeptNumber}.`;
+            } else if (rowType === 'subdepartment') {
+                if (currentDeptNumber === 0) currentDeptNumber = 1;
+                lpCell.textContent = `${currentDeptNumber}.${currentSubDeptNumber})`;
+                currentSubDeptNumber++;
+                currentTaskNumberInSubDept = 1;
+            } else if (rowType === 'task') {
+                if (currentDeptNumber === 0) currentDeptNumber = 1;
+                let parentIsSubDept = false;
+                let parentIsDeptDirectly = false;
+                let lastSubDeptLpText = "";
+                let k = i - 1;
+                while (k >= 0) {
+                    const prevRow = rows[k];
+                    if (prevRow.id === INDICATOR_ROW_ID) { k--; continue; }
+                    const prevRowType = prevRow.dataset.rowType;
+                    if (prevRowType === 'subdepartment') {
+                        parentIsSubDept = true;
+                        lastSubDeptLpText = prevRow.cells[1]?.textContent || `${currentDeptNumber}.${currentSubDeptNumber -1})`;
+                        break;
+                    } else if (prevRowType === 'department') {
+                        parentIsDeptDirectly = true;
+                        break;
+                    }
+                    if (prevRowType === 'task' && prevRow.cells[1]?.textContent.startsWith(`${currentDeptNumber}.`)) {
+                        const prevLpParts = prevRow.cells[1]?.textContent.split('.');
+                        if (prevLpParts && prevLpParts[0] === String(currentDeptNumber)) {
+                            if (prevLpParts.length > 2 && prevLpParts[1].includes(')')) {
+                                parentIsSubDept = true;
+                                lastSubDeptLpText = `${prevLpParts[0]}.${prevLpParts[1]}`;
+                            } else {
+                                parentIsDeptDirectly = true;
+                            }
+                            break;
+                        }
+                    }
+                    k--;
+                }
+                if (i === 0 && currentDeptNumber > 0 && !parentIsSubDept) {
+                    parentIsDeptDirectly = true;
+                }
+                if (parentIsSubDept) {
+                    lpCell.textContent = `${lastSubDeptLpText}.${currentTaskNumberInSubDept}`;
+                    currentTaskNumberInSubDept++;
+                } else {
+                    lpCell.textContent = `${currentDeptNumber}.${currentTaskNumberInDept}`;
+                    currentTaskNumberInDept++;
+                }
+            }
+        }
+    }
+};
 const saveEstimateState = async () => {
     if (isRestoringState) return;
-    // Zmieniono: Zapisujemy currentEstimateModel bezpośrednio
-    saveToLocalStorage(STORAGE_KEYS.ESTIMATE_STATE, currentEstimateModel);
+    const currentState = getCurrentEstimateDisplayState();
+    saveToLocalStorage(STORAGE_KEYS.ESTIMATE_STATE, currentState);
 };
 const loadEstimateState = async () => {
     const savedEstimateState = loadFromLocalStorage(STORAGE_KEYS.ESTIMATE_STATE);
     if (savedEstimateState && savedEstimateState.rows) {
-        // Zmieniono: Wczytujemy do currentEstimateModel
-        currentEstimateModel.rows = savedEstimateState.rows;
-        currentEstimateModel.departmentColors = savedEstimateState.departmentColors || {};
-        currentEstimateModel.isHierarchical = savedEstimateState.isHierarchical === undefined ? false : savedEstimateState.isHierarchical;
-
-        // Zmieniono: Aktualizujemy appState, aby jego wartości były spójne z modelem i UI
-        appState.setState('isHierarchicalMode', currentEstimateModel.isHierarchical, true);
-
-        // Zmieniono: Wywołujemy renderCostTable, aby zaktualizować DOM na podstawie modelu
-        if (typeof renderCostTable === 'function') {
-            await renderCostTable(currentEstimateModel);
-        } else {
-            if (costTableBody) costTableBody.innerHTML = ''; // Wyczyść DOM jeśli renderCostTable nie jest dostępne
-        }
-
-        console.log("Wczytano stan kosztorysu (ESTIMATE_STATE), w tym departmentColors i isHierarchical.");
+        appState.setState('isHierarchicalMode', savedEstimateState.isHierarchical, true);
+        await restoreEstimateDisplayState(savedEstimateState);
+        console.log("Wczytano stan kosztorysu (ESTIMATE_STATE), w tym departmentColors. isHierarchical z pliku: ", savedEstimateState.isHierarchical);
     } else {
-        // Zmieniono: Jeśli brak zapisanego stanu, zainicjuj pusty model i domyślne ustawienia
-        currentEstimateModel.rows = [];
-        currentEstimateModel.departmentColors = {};
-        currentEstimateModel.isHierarchical = false; // Domyślnie niehierarchiczny
-
-        appState.setState('isHierarchicalMode', false, true); // Zaktualizuj appState
-
-        if (currentEstimateModel.isHierarchical && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') {
-            ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja zaktualizuje model
+        if (appState.getState('isHierarchicalMode') && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') {
+            ensureFirstRowIsDepartmentIfNeeded(true, true);
         }
-
-        // Zmieniono: Wywołaj renderCostTable dla początkowego, pustego/domyślnego stanu
-        if (typeof renderCostTable === 'function') {
-            await renderCostTable(currentEstimateModel);
-        } else {
-            if (costTableBody) costTableBody.innerHTML = '';
-        }
-
         if (typeof recalculateAllRowsAndTotals === 'function') {
             await recalculateAllRowsAndTotals();
         }
         console.log("Brak zapisanego stanu (ESTIMATE_STATE), zainicjalizowano domyślny.");
     }
-    saveHistoryState(); // Przeniesione tutaj, aby było zdefiniowane i zawsze zapisywało stan początkowy
+    saveHistoryState(); // Przeniesione tutaj, aby było zdefiniowane
 };
 
 
@@ -1192,7 +1261,7 @@ const showCustomContextMenu = (event) => {
     let leftPosition = event.clientX;
 
     if (topPosition + menuHeight > windowHeight) {
-        topPosition = windowHeight - menuHeight - 5;
+        topPosition = windowHeight - menuHeight - 5; 
         if (topPosition < 0) topPosition = 5;
     }
     if (leftPosition + menuWidth > windowWidth) {
@@ -1213,125 +1282,58 @@ const handleContextMenuAction = async (event) => {
     if (!event.target.matches('#custom-context-menu li') || event.target.classList.contains('disabled')) return;
     const action = event.target.dataset.action;
     hideCustomContextMenu();
-    const targetDomRow = contextMenuTargetRow || lastClickedRow; // Element DOM wiersza
+    const targetRowForAction = contextMenuTargetRow || lastClickedRow;
 
     switch (action) {
         case 'edit':
-            if (targetDomRow) {
-                if (targetDomRow.dataset.rowType === 'task' && typeof handleEditEstimateRow === 'function') await handleEditEstimateRow(targetDomRow);
-                else if (targetDomRow.dataset.rowType === 'department' || targetDomRow.dataset.rowType === 'subdepartment') {
-                    const inputField = targetDomRow.querySelector('.special-row-input');
+            if (targetRowForAction) {
+                if (targetRowForAction.dataset.rowType === 'task' && typeof handleEditEstimateRow === 'function') await handleEditEstimateRow(targetRowForAction);
+                else if (targetRowForAction.dataset.rowType === 'department' || targetRowForAction.dataset.rowType === 'subdepartment') {
+                    const inputField = targetRowForAction.querySelector('.special-row-input');
                     if (inputField) inputField.focus();
                 }
             }
             break;
         case 'edit-notes':
-            // Zmieniono: openNotesModal przyjmuje ID wiersza, a nie DOM element
-            if (targetDomRow && typeof openNotesModal === 'function') openNotesModal(targetDomRow.dataset.rowId);
+            if (targetRowForAction && typeof openNotesModal === 'function') openNotesModal(targetRowForAction);
             break;
         case 'delete':
-            // Użyj targetDomRow do znalezienia odpowiedniego obiektu w modelu
-            if (!targetDomRow || !costTableBody || !costTableBody.contains(targetDomRow)) {
-                console.warn("handleContextMenuAction: Brak docelowego wiersza do usunięcia.");
-                return;
+            const rowToDelete = targetRowForAction;
+            if (rowToDelete && costTableBody && costTableBody.contains(rowToDelete)) {
+                let confirmText = "Czy na pewno chcesz usunąć ten wiersz?";
+                if (rowToDelete.dataset.rowType === 'department') confirmText = "Czy na pewno chcesz usunąć ten DZIAŁ i wszystkie jego poddziały oraz pozycje?";
+                else if (rowToDelete.dataset.rowType === 'subdepartment') confirmText = "Czy na pewno chcesz usunąć ten PODDZIAŁ i wszystkie jego pozycje?";
+
+                showConfirmNotification(confirmText, async () => {
+                    if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
+                    let nextSibling = rowToDelete.nextElementSibling;
+                    const rowIdToDelete = rowToDelete.dataset.rowId; 
+
+                    if (rowToDelete.dataset.rowType === 'department') {
+                        while (nextSibling && nextSibling.dataset.rowType !== 'department') {
+                            if (nextSibling.dataset.rowId && departmentColors[nextSibling.dataset.rowId]) {
+                                delete departmentColors[nextSibling.dataset.rowId];
+                            }
+                            const toRemove = nextSibling; nextSibling = nextSibling.nextElementSibling; toRemove.remove();
+                        }
+                    } else if (rowToDelete.dataset.rowType === 'subdepartment') {
+                        while (nextSibling && (nextSibling.dataset.rowType === 'task' || nextSibling.dataset.rowType === 'subdepartment')) {
+                            if (nextSibling.dataset.rowType === 'subdepartment') break;
+                            const toRemove = nextSibling; nextSibling = nextSibling.nextElementSibling; toRemove.remove();
+                        }
+                    }
+                    if (rowIdToDelete && departmentColors[rowIdToDelete]) {
+                        delete departmentColors[rowIdToDelete];
+                    }
+                    rowToDelete.remove();
+                    if (lastClickedRow === rowToDelete) { lastClickedRow = null; if(saveDepartmentTemplateBtn) saveDepartmentTemplateBtn.disabled = true; }
+                    if (typeof renumberRows === 'function') renumberRows();
+                    if (!isRestoringState && typeof appState !== 'undefined') appState.notify('estimateDataPotentiallyChanged');
+                    if(!isRestoringState && typeof saveEstimateState === 'function') saveEstimateState();
+                    if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
+                    showNotification("Wiersz usunięty.", "success");
+                });
             }
-            const targetRowId = targetDomRow.dataset.rowId;
-            const targetRowType = targetDomRow.dataset.rowType;
-
-            let confirmText = "Czy na pewno chcesz usunąć ten wiersz?";
-            if (targetRowType === 'department') confirmText = "Czy na pewno chcesz usunąć ten DZIAŁ i wszystkie jego poddziały oraz pozycje?";
-            else if (targetRowType === 'subdepartment') confirmText = "Czy na pewno chcesz usunąć ten PODDZIAŁ i wszystkie jego pozycje?";
-
-            showConfirmNotification(confirmText, async () => {
-                // Zapisz stan przed usunięciem (dla undo)
-                if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
-
-                // Znajdź indeks wiersza w modelu
-                const rowIndexToDelete = currentEstimateModel.rows.findIndex(r => r.rowId === targetRowId);
-                if (rowIndexToDelete === -1) {
-                    console.error("handleContextMenuAction: Nie znaleziono wiersza w modelu do usunięcia.");
-                    showNotification("Błąd: Nie udało się usunąć wiersza z modelu.", "error");
-                    return;
-                }
-
-                let updatedRows = [...currentEstimateModel.rows];
-                let deletedRowIds = [targetRowId]; // Śledź usunięte ID
-
-                if (targetRowType === 'department') {
-                    // Usuń dział i wszystkie jego dzieci z modelu
-                    const newRowsAfterDeletion = [];
-                    let inDeletionBlock = false;
-                    for (let i = 0; i < updatedRows.length; i++) {
-                        const row = updatedRows[i];
-                        if (row.rowId === targetRowId) {
-                            inDeletionBlock = true; // Rozpocznij blok usuwania
-                            // Ten wiersz zostanie pominięty
-                        } else if (inDeletionBlock && row.rowType === 'department') {
-                            inDeletionBlock = false; // Zakończ blok usuwania, jeśli natrafisz na nowy dział
-                            newRowsAfterDeletion.push(row);
-                        } else if (inDeletionBlock) {
-                            // Ten wiersz zostanie pominięty
-                            deletedRowIds.push(row.rowId);
-                        } else {
-                            newRowsAfterDeletion.push(row); // Dodaj wiersz do nowej listy
-                        }
-                    }
-                    updatedRows = newRowsAfterDeletion;
-
-                } else if (targetRowType === 'subdepartment') {
-                    // Usuń poddział i wszystkie jego zadania (do następnego poddziału/działu) z modelu
-                    const newRowsAfterDeletion = [];
-                    let inDeletionBlock = false;
-                    for (let i = 0; i < updatedRows.length; i++) {
-                        const row = updatedRows[i];
-                        if (row.rowId === targetRowId) {
-                            inDeletionBlock = true;
-                        } else if (inDeletionBlock && (row.rowType === 'subdepartment' || row.rowType === 'department')) {
-                            inDeletionBlock = false;
-                            newRowsAfterDeletion.push(row);
-                        } else if (inDeletionBlock) {
-                            deletedRowIds.push(row.rowId);
-                        } else {
-                            newRowsAfterDeletion.push(row);
-                        }
-                    }
-                    updatedRows = newRowsAfterDeletion;
-                } else { // Typ 'task'
-                    updatedRows.splice(rowIndexToDelete, 1); // Usuń tylko ten wiersz
-                }
-
-                // Usuń kolory z modelu dla usuniętych wierszy
-                const updatedDepartmentColors = { ...currentEstimateModel.departmentColors };
-                deletedRowIds.forEach(id => {
-                    if (updatedDepartmentColors[id]) {
-                        delete updatedDepartmentColors[id];
-                    }
-                });
-
-                // Zaktualizuj model i wyrenderuj tabelę
-                await updateModelAndRender({
-                    rows: updatedRows,
-                    departmentColors: updatedDepartmentColors
-                });
-
-                // Zaktualizuj lastClickedRow po usunięciu
-                if (lastClickedRow === targetDomRow) {
-                    // Próba ustawienia lastClickedRow na poprzedni lub następny wiersz DOM
-                    let newLastClickedRow = targetDomRow.previousElementSibling || targetDomRow.nextElementSibling;
-                    // Jeśli nowy lastClickedRow jest wskaźnikiem insertIndicator, przesuń dalej
-                    const indicatorId = typeof INDICATOR_ROW_ID !== 'undefined' ? INDICATOR_ROW_ID : 'temp-insert-indicator';
-                    if (newLastClickedRow && newLastClickedRow.id === indicatorId) {
-                        newLastClickedRow = newLastClickedRow.previousElementSibling || newLastClickedRow.nextElementSibling;
-                    }
-                    if (lastClickedRow) lastClickedRow.classList.remove('last-clicked-row-highlight'); // Usuń podświetlenie z starego
-                    lastClickedRow = newLastClickedRow;
-                    if (lastClickedRow) lastClickedRow.classList.add('last-clicked-row-highlight');
-                }
-                // lastClickedRow i saveDepartmentTemplateBtn są obsługiwane przez renderCostTable
-                // i event listener 'click' na wierszach
-
-                showNotification("Wiersz(e) usunięte.", "success");
-            });
             break;
         case 'save-version': if (typeof _internalSaveCurrentEstimateAsVersion === 'function') await _internalSaveCurrentEstimateAsVersion(false); break;
         case 'save-estimate': if (typeof saveEstimateToFile === 'function') await saveEstimateToFile(); break;
@@ -1340,144 +1342,121 @@ const handleContextMenuAction = async (event) => {
     }
 };
 // ==========================================================================
-// SEKCIA 10: GŁÓWNA INICJALIZACJA APLIKACJI (initApp)
+// SEKCJA 10: GŁÓWNA INICJALIZACJA APLIKACJI (initApp)
 // ==========================================================================
 async function initApp() {
     console.log(`%cInicjalizacja ${APP_VERSION}...`, "color: blue; font-weight: bold;");
-    console.log("DEBUG: initApp - Start."); // <-- DODANO
+    departmentColors = {};
 
-    try { // <-- TUTAJ ZACZYNA SIĘ BLOK TRY DLA CAŁEJ FUNKCJI
-        console.log("DEBUG: initApp - Wewnątrz bloku try."); // <-- DODANO
+    costTableBody = document.getElementById('cost-table-body'); if (!costTableBody) throw new Error("Krytyczny błąd: Element 'cost-table-body' nie został znaleziony w DOM.");
+    grandTotalElement = document.getElementById('grand-total'); if (!grandTotalElement) throw new Error("Krytyczny błąd: Element 'grand-total' nie został znaleziony w DOM.");
+    notificationsContainer = document.getElementById('notifications-container'); if (!notificationsContainer) console.warn("Element 'notifications-container' nie znaleziony. Powiadomienia będą używać alert().");
+    addRowBtn = document.getElementById('add-row-btn'); addDepartmentBtn = document.getElementById('add-department-btn'); addSubDepartmentBtn = document.getElementById('add-subdepartment-btn'); clearAllBtn = document.getElementById('clear-all-btn'); saveEstimateVersionBtn = document.getElementById('save-estimate-version-btn'); previewEstimateDetailBtn = document.getElementById('preview-estimate-detail-btn'); materialSummaryBody = document.getElementById('material-summary-body'); materialGrandTotalElement = document.getElementById('material-grand-total'); materialProfitGrandTotalElement = document.getElementById('material-profit-grand-total'); materialSummaryTable = document.getElementById('material-summary-table'); customTaskModal = document.getElementById('custom-task-modal'); if (!customTaskModal) throw new Error("Krytyczny błąd: Modal 'custom-task-modal' nie znaleziony."); closeModalBtn = customTaskModal.querySelector('.close-modal-btn[data-modal-id="custom-task-modal"]'); saveModalBtn = document.getElementById('save-custom-task-btn'); cancelCustomTaskBtn = document.getElementById('cancel-custom-task-btn'); addMaterialNormBtn = document.getElementById('add-material-norm-btn'); customTaskMaterialsList = document.getElementById('custom-task-materials-list'); modalTitle = customTaskModal.querySelector('h2'); originalModalTitle = modalTitle ? modalTitle.textContent : "Zdefiniuj/Edytuj Pozycję Katalogową"; modalDescInput = document.getElementById('custom-task-desc'); modalUnitInput = document.getElementById('custom-task-unit'); modalNormRInput = document.getElementById('custom-task-norm-r'); modalWorkerCategorySelect = document.getElementById('custom-task-worker-category'); modalMaterialsSection = customTaskModal.querySelector('#modal-materials-section'); modalQuantityDiv = document.createElement('div'); modalQuantityDiv.classList.add('form-group'); modalQuantityDiv.innerHTML = `<label for="modal-task-quantity">Obmiar dla tej pozycji:</label><input type="text" id="modal-task-quantity" value="1,000">`; modalQuantityInput = modalQuantityDiv.querySelector('#modal-task-quantity'); materialSelectModal = document.getElementById('material-select-modal'); if (!materialSelectModal) throw new Error("Krytyczny błąd: Modal 'material-select-modal' nie znaleziony."); closeMaterialModalBtn = materialSelectModal.querySelector('.close-modal-btn[data-modal-id="material-select-modal"]'); materialSearchInput = document.getElementById('material-search-input'); materialSelectList = document.getElementById('material-select-list'); materialSelectNoResults = document.getElementById('material-select-no-results'); newMaterialNameInput = document.getElementById('new-material-name-input'); newMaterialUnitInput = document.getElementById('new-material-unit-input'); newMaterialCategoryInput = document.getElementById('new-material-category-input'); addNewMaterialBtn = document.getElementById('add-new-material-btn'); cancelMaterialSelectBtn = document.getElementById('cancel-material-select-btn'); csvFileInput = document.getElementById('csv-file-input'); loadCsvButton = document.getElementById('load-csv-button'); saveEstimateBtn = document.getElementById('save-estimate-btn'); loadEstimateBtn = document.getElementById('load-estimate-btn'); loadEstimateFileInput = document.getElementById('load-estimate-file-input'); commonUnitsDatalist = document.getElementById('commonUnitsData'); undoBtn = document.getElementById('undo-btn'); redoBtn = document.getElementById('redo-btn'); fixedActionButtons = document.getElementById('fixed-action-buttons'); scrollToTopBtn = document.getElementById('scroll-to-top-btn'); useSameRateCheckbox = document.getElementById('use-same-rate-for-all'); specialistRatesContainer = document.getElementById('specialist-rates-container'); openPrintSelectionBtn = document.getElementById('open-print-selection-btn'); printSelectionModal = document.getElementById('print-selection-modal'); if (!printSelectionModal) throw new Error("Krytyczny błąd: Modal 'print-selection-modal' nie znaleziony."); closePrintSelectionModalBtn = printSelectionModal.querySelector('.close-modal-btn[data-modal-id="print-selection-modal"]'); generateSelectedPrintsBtn = document.getElementById('generate-selected-prints-btn'); cancelPrintSelectionBtn = document.getElementById('cancel-print-selection-btn'); printOptionsContainer = document.getElementById('print-options-container'); toggleStyleConfiguratorBtn = document.getElementById('toggle-style-configurator-btn'); konfiguratorStyluContent = document.getElementById('konfigurator-stylu-content'); editEstimateDetailsBtn = document.getElementById('edit-estimate-details-btn'); estimateDetailsModal = document.getElementById('edit-estimate-details-modal'); if (!estimateDetailsModal) throw new Error("Krytyczny błąd: Modal 'edit-estimate-details-modal' nie znaleziony."); saveEstimateDetailsModalBtn = document.getElementById('save-estimate-details-modal-btn'); cancelEstimateDetailsModalBtn = document.getElementById('cancel-estimate-details-modal-btn'); modalEstimateTitleInput = document.getElementById('modal-estimate-title'); modalInvestmentLocationInput = document.getElementById('modal-investment-location'); modalInvestorInfoInput = document.getElementById('modal-investor-info'); modalContractorInfoInput = document.getElementById('modal-contractor-info'); modalVatRateSelect = document.getElementById('modal-vat-rate'); estimateVersionsSelect = document.getElementById('estimate-versions-select'); loadSelectedVersionBtn = document.getElementById('load-selected-version-btn'); deleteSelectedVersionBtn = document.getElementById('delete-selected-version-btn'); customContextMenu = document.getElementById('custom-context-menu'); saveDepartmentTemplateBtn = document.getElementById('save-department-as-template-btn'); saveEstimateTemplateBtn = document.getElementById('save-estimate-as-template-btn'); openTemplatesModalBtn = document.getElementById('open-templates-modal-btn'); templatesModal = document.getElementById('templates-modal'); if(!templatesModal) throw new Error("Krytyczny błąd: Modal 'templates-modal' nie znaleziony."); closeTemplatesModalBtn = document.getElementById('close-templates-modal-btn'); templateSelect = document.getElementById('template-select'); insertTemplateBtn = document.getElementById('insert-template-btn'); deleteTemplateBtn = document.getElementById('delete-template-btn'); branchSelectDropdown = document.getElementById('global-branch-filter');
+    tasksCatalogSearch = document.getElementById('tasks-catalog-search'); tasksCatalogListContainer = document.getElementById('tasks-catalog-list-container'); addNewTaskToCatalogBtn = document.getElementById('add-new-task-to-catalog-btn');
+    materialsCatalogSearch = document.getElementById('materials-catalog-search'); materialsCatalogListContainer = document.getElementById('materials-catalog-list-container'); addNewMaterialToCatalogBtn = document.getElementById('add-new-material-to-catalog-btn'); notesModal = document.getElementById('notes-modal'); if (!notesModal) throw new Error("Krytyczny błąd: Modal 'notes-modal' nie znaleziony."); notesModalTextarea = document.getElementById('notes-modal-textarea'); notesModalItemDesc = document.getElementById('notes-modal-item-desc'); saveNotesModalBtn = document.getElementById('save-notes-modal-btn'); cancelNotesModalBtn = document.getElementById('cancel-notes-modal-btn'); closeNotesModalXBtn = notesModal.querySelector('.close-modal-btn[data-modal-id="notes-modal"]');
+    confirmNotificationModal = document.getElementById('confirm-notification-modal');
+    if (confirmNotificationModal) {
+        confirmNotificationTitle = document.getElementById('confirm-notification-title');
+        confirmNotificationMessage = document.getElementById('confirm-notification-message');
+        confirmNotificationOkBtn = document.getElementById('confirm-notification-ok-btn');
+        confirmNotificationCancelBtn = document.getElementById('confirm-notification-cancel-btn');
+        confirmNotificationCloseBtnX = confirmNotificationModal.querySelector('.close-modal-btn[data-modal-id="confirm-notification-modal"]');
 
-        costTableBody = document.getElementById('cost-table-body'); if (!costTableBody) throw new Error("Krytyczny błąd: Element 'cost-table-body' nie został znaleziony w DOM.");
-        grandTotalElement = document.getElementById('grand-total'); if (!grandTotalElement) throw new Error("Krytyczny błąd: Element 'grand-total' nie został znaleziony w DOM.");
-        notificationsContainer = document.getElementById('notifications-container'); if (!notificationsContainer) console.warn("Element 'notifications-container' nie znaleziony. Powiadomienia będą używać alert().");
-        addRowBtn = document.getElementById('add-row-btn'); addDepartmentBtn = document.getElementById('add-department-btn'); addSubDepartmentBtn = document.getElementById('add-subdepartment-btn'); clearAllBtn = document.getElementById('clear-all-btn'); saveEstimateVersionBtn = document.getElementById('save-estimate-version-btn'); previewEstimateDetailBtn = document.getElementById('preview-estimate-detail-btn'); materialSummaryBody = document.getElementById('material-summary-body'); materialGrandTotalElement = document.getElementById('material-grand-total'); materialProfitGrandTotalElement = document.getElementById('material-profit-grand-total'); materialSummaryTable = document.getElementById('material-summary-table'); customTaskModal = document.getElementById('custom-task-modal'); if (!customTaskModal) throw new Error("Krytyczny błąd: Modal 'custom-task-modal' nie znaleziony."); closeModalBtn = customTaskModal.querySelector('.close-modal-btn[data-modal-id="custom-task-modal"]'); saveModalBtn = document.getElementById('save-custom-task-btn'); cancelCustomTaskBtn = document.getElementById('cancel-custom-task-btn'); addMaterialNormBtn = document.getElementById('add-material-norm-btn'); customTaskMaterialsList = document.getElementById('custom-task-materials-list'); modalTitle = customTaskModal.querySelector('h2'); originalModalTitle = modalTitle ? modalTitle.textContent : "Zdefiniuj/Edytuj Pozycję Katalogową"; modalDescInput = document.getElementById('custom-task-desc'); modalUnitInput = document.getElementById('custom-task-unit'); modalNormRInput = document.getElementById('custom-task-norm-r'); modalWorkerCategorySelect = document.getElementById('custom-task-worker-category'); modalMaterialsSection = customTaskModal.querySelector('#modal-materials-section'); modalQuantityDiv = document.createElement('div'); modalQuantityDiv.classList.add('form-group'); modalQuantityDiv.innerHTML = `<label for="modal-task-quantity">Obmiar dla tej pozycji:</label><input type="text" id="modal-task-quantity" value="1,000">`; modalQuantityInput = modalQuantityDiv.querySelector('#modal-task-quantity'); materialSelectModal = document.getElementById('material-select-modal'); if (!materialSelectModal) throw new Error("Krytyczny błąd: Modal 'material-select-modal' nie znaleziony."); closeMaterialModalBtn = materialSelectModal.querySelector('.close-modal-btn[data-modal-id="material-select-modal"]'); materialSearchInput = document.getElementById('material-search-input'); materialSelectList = document.getElementById('material-select-list'); materialSelectNoResults = document.getElementById('material-select-no-results'); newMaterialNameInput = document.getElementById('new-material-name-input'); newMaterialUnitInput = document.getElementById('new-material-unit-input'); newMaterialCategoryInput = document.getElementById('new-material-category-input'); addNewMaterialBtn = document.getElementById('add-new-material-btn'); cancelMaterialSelectBtn = document.getElementById('cancel-material-select-btn'); csvFileInput = document.getElementById('csv-file-input'); loadCsvButton = document.getElementById('load-csv-button'); saveEstimateBtn = document.getElementById('save-estimate-btn'); loadEstimateBtn = document.getElementById('load-estimate-btn'); loadEstimateFileInput = document.getElementById('load-estimate-file-input'); commonUnitsDatalist = document.getElementById('commonUnitsData'); undoBtn = document.getElementById('undo-btn'); redoBtn = document.getElementById('redo-btn'); fixedActionButtons = document.getElementById('fixed-action-buttons'); scrollToTopBtn = document.getElementById('scroll-to-top-btn'); useSameRateCheckbox = document.getElementById('use-same-rate-for-all'); specialistRatesContainer = document.getElementById('specialist-rates-container'); openPrintSelectionBtn = document.getElementById('open-print-selection-btn'); printSelectionModal = document.getElementById('print-selection-modal'); if (!printSelectionModal) throw new Error("Krytyczny błąd: Modal 'print-selection-modal' nie znaleziony."); closePrintSelectionModalBtn = printSelectionModal.querySelector('.close-modal-btn[data-modal-id="print-selection-modal"]'); generateSelectedPrintsBtn = document.getElementById('generate-selected-prints-btn'); cancelPrintSelectionBtn = document.getElementById('cancel-print-selection-btn'); printOptionsContainer = document.getElementById('print-options-container'); toggleStyleConfiguratorBtn = document.getElementById('toggle-style-configurator-btn'); konfiguratorStyluContent = document.getElementById('konfigurator-stylu-content'); editEstimateDetailsBtn = document.getElementById('edit-estimate-details-btn'); estimateDetailsModal = document.getElementById('edit-estimate-details-modal'); if (!estimateDetailsModal) throw new Error("Krytyczny błąd: Modal 'edit-estimate-details-modal' nie znaleziony."); saveEstimateDetailsModalBtn = document.getElementById('save-estimate-details-modal-btn'); cancelEstimateDetailsModalBtn = document.getElementById('cancel-estimate-details-modal-btn'); modalEstimateTitleInput = document.getElementById('modal-estimate-title'); modalInvestmentLocationInput = document.getElementById('modal-investment-location'); modalInvestorInfoInput = document.getElementById('modal-investor-info'); modalContractorInfoInput = document.getElementById('modal-contractor-info'); modalVatRateSelect = document.getElementById('modal-vat-rate'); estimateVersionsSelect = document.getElementById('estimate-versions-select'); loadSelectedVersionBtn = document.getElementById('load-selected-version-btn'); deleteSelectedVersionBtn = document.getElementById('delete-selected-version-btn'); customContextMenu = document.getElementById('custom-context-menu'); saveDepartmentTemplateBtn = document.getElementById('save-department-as-template-btn'); saveEstimateTemplateBtn = document.getElementById('save-estimate-as-template-btn'); openTemplatesModalBtn = document.getElementById('open-templates-modal-btn'); templatesModal = document.getElementById('templates-modal'); if(!templatesModal) throw new Error("Krytyczny błąd: Modal 'templates-modal' nie znaleziony."); closeTemplatesModalBtn = document.getElementById('close-templates-modal-btn'); templateSelect = document.getElementById('template-select'); insertTemplateBtn = document.getElementById('insert-template-btn'); deleteTemplateBtn = document.getElementById('delete-template-btn'); branchSelectDropdown = document.getElementById('global-branch-filter');
-        tasksCatalogSearch = document.getElementById('tasks-catalog-search'); tasksCatalogListContainer = document.getElementById('tasks-catalog-list-container'); addNewTaskToCatalogBtn = document.getElementById('add-new-task-to-catalog-btn');
-        materialsCatalogSearch = document.getElementById('materials-catalog-search'); materialsCatalogListContainer = document.getElementById('materials-catalog-list-container'); addNewMaterialToCatalogBtn = document.getElementById('add-new-material-to-catalog-btn'); notesModal = document.getElementById('notes-modal'); if (!notesModal) throw new Error("Krytyczny błąd: Modal 'notes-modal' nie znaleziony."); notesModalTextarea = document.getElementById('notes-modal-textarea'); notesModalItemDesc = document.getElementById('notes-modal-item-desc'); saveNotesModalBtn = document.getElementById('save-notes-modal-btn'); cancelNotesModalBtn = document.getElementById('cancel-notes-modal-btn'); closeNotesModalXBtn = notesModal.querySelector('.close-modal-btn[data-modal-id="notes-modal"]');
-        confirmNotificationModal = document.getElementById('confirm-notification-modal');
-        if (confirmNotificationModal) {
-            confirmNotificationTitle = document.getElementById('confirm-notification-title');
-            confirmNotificationMessage = document.getElementById('confirm-notification-message');
-            confirmNotificationOkBtn = document.getElementById('confirm-notification-ok-btn');
-            confirmNotificationCancelBtn = document.getElementById('confirm-notification-cancel-btn');
-            confirmNotificationCloseBtnX = confirmNotificationModal.querySelector('.close-modal-btn[data-modal-id="confirm-notification-modal"]');
+        if(confirmNotificationOkBtn) confirmNotificationOkBtn.addEventListener('click', () => { if (currentConfirmCallback) currentConfirmCallback(); closeConfirmNotificationModal(); });
+        if(confirmNotificationCancelBtn) confirmNotificationCancelBtn.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
+        if(confirmNotificationCloseBtnX) confirmNotificationCloseBtnX.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
+    } else {
+        console.warn("Modal potwierdzenia ('confirm-notification-modal') nie znaleziony.");
+    }
+    console.log("Wszystkie elementy DOM przypisane.");
 
-            if(confirmNotificationOkBtn) confirmNotificationOkBtn.addEventListener('click', () => { if (currentConfirmCallback) currentConfirmCallback(); closeConfirmNotificationModal(); });
-            if(confirmNotificationCancelBtn) confirmNotificationCancelBtn.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
-            if(confirmNotificationCloseBtnX) confirmNotificationCloseBtnX.addEventListener('click', () => { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); });
-        } else {
-            console.warn("Modal potwierdzenia ('confirm-notification-modal') nie znaleziony.");
+    const fillBranchSelectors = () => { const selectors = [branchSelectDropdown, document.getElementById('modal-task-branch-select')]; if (typeof BRANCHES === 'undefined') { console.error("Zmienna BRANCHES nie jest zdefiniowana!"); return; } selectors.forEach(selector => { if (selector) { const firstOptionValue = selector.options[0]?.value; const firstOptionText = selector.options[0]?.textContent; selector.innerHTML = ''; if (firstOptionValue === "" && firstOptionText) { const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = firstOptionText; selector.appendChild(defaultOpt); } for (const branchKey in BRANCHES) { const option = document.createElement('option'); option.value = BRANCHES[branchKey].code; option.textContent = BRANCHES[branchKey].name; selector.appendChild(option); } } }); }; fillBranchSelectors();
+    if (modalWorkerCategorySelect) {
+        modalWorkerCategorySelect.innerHTML = '';
+        const currentWorkerRates = appState.getState('workerRatesSettings');
+        for (const catCode in currentWorkerRates) {
+            const option = document.createElement('option');
+            option.value = catCode; option.textContent = currentWorkerRates[catCode].name;
+            modalWorkerCategorySelect.appendChild(option);
         }
-        console.log("Wszystkie elementy DOM przypisane.");
+    } else console.warn("Selektor modalWorkerCategorySelect nie znaleziony.");
 
-        console.log("DEBUG: initApp - Przed fillBranchSelectors."); // <-- DODANO
-        const fillBranchSelectors = () => { const selectors = [branchSelectDropdown, document.getElementById('modal-task-branch-select')]; if (typeof BRANCHES === 'undefined') { console.error("Zmienna BRANCHES nie jest zdefiniowana!"); return; } selectors.forEach(selector => { if (selector) { const firstOptionValue = selector.options[0]?.value; const firstOptionText = selector.options[0]?.textContent; selector.innerHTML = ''; if (firstOptionValue === "" && firstOptionText) { const defaultOpt = document.createElement('option'); defaultOpt.value = ""; defaultOpt.textContent = firstOptionText; selector.appendChild(defaultOpt); } for (const branchKey in BRANCHES) { const option = document.createElement('option'); option.value = BRANCHES[branchKey].code; option.textContent = BRANCHES[branchKey].name; selector.appendChild(option); } } }); }; fillBranchSelectors();
-        console.log("DEBUG: initApp - Po fillBranchSelectors."); // <-- DODANO
+    if(modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
+    if(modalInvestmentLocationInput) modalInvestmentLocationInput.value = appState.getState('investmentLocation');
+    if(modalInvestorInfoInput) modalInvestorInfoInput.value = appState.getState('investorInfo');
+    if(modalContractorInfoInput) modalContractorInfoInput.value = appState.getState('contractorInfo');
+    if(modalVatRateSelect) modalVatRateSelect.value = appState.getState('vatRate');
+    const vatDisplay = document.getElementById('modal-vat-rate-display');
+    if(vatDisplay) vatDisplay.value = appState.getState('currentVatDisplayValue');
 
-        if (modalWorkerCategorySelect) {
-            modalWorkerCategorySelect.innerHTML = '';
-            const currentWorkerRates = appState.getState('workerRatesSettings');
-            for (const catCode in currentWorkerRates) {
-                const option = document.createElement('option');
-                option.value = catCode; option.textContent = currentWorkerRates[catCode].name;
-                modalWorkerCategorySelect.appendChild(option);
-            }
-        } else console.warn("Selektor modalWorkerCategorySelect nie znaleziony.");
+    if(useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
+    const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
+    if (ogolnobudowlanyRateInput) {
+         const ratesSettings = appState.getState('workerRatesSettings');
+         setNumericInputValue(ogolnobudowlanyRateInput, ratesSettings.ogolnobudowlany?.rate || 0);
+         ogolnobudowlanyRateInput.addEventListener('input', debounce(handleLaborRateChange, 300));
+         ogolnobudowlanyRateInput.addEventListener('change', (e) => {
+            setNumericInputValue(e.target, parseFloat(e.target.value.replace(',', '.')) || 0.00);
+            if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
+        });
+    }
+    await updateDynamicSpecialistRatesVisibility();
+    if(useSameRateCheckbox) useSameRateCheckbox.addEventListener('change', handleUseSameRateChange);
 
-        if(modalEstimateTitleInput) modalEstimateTitleInput.value = appState.getState('estimateTitle');
-        if(modalInvestmentLocationInput) modalInvestmentLocationInput.value = appState.getState('investmentLocation');
-        if(modalInvestorInfoInput) modalInvestorInfoInput.value = appState.getState('investorInfo');
-        if(modalContractorInfoInput) modalContractorInfoInput.value = appState.getState('contractorInfo');
-        if(modalVatRateSelect) modalVatRateSelect.value = appState.getState('vatRate');
-        const vatDisplay = document.getElementById('modal-vat-rate-display');
-        if(vatDisplay) vatDisplay.value = appState.getState('currentVatDisplayValue');
+    if (branchSelectDropdown) {
+        branchSelectDropdown.value = appState.getState('lastBranchFilter') || "";
+        branchSelectDropdown.addEventListener('change', (e) => {
+            appState.setState('lastBranchFilter', e.target.value);
+        });
+    }
 
-        if(useSameRateCheckbox) useSameRateCheckbox.checked = appState.getState('useSameRateForAllSpecialists');
-        const ogolnobudowlanyRateInput = document.getElementById('rate-labor-ogolnobudowlany');
-        if (ogolnobudowlanyRateInput) {
-             const ratesSettings = appState.getState('workerRatesSettings');
-             setNumericInputValue(ogolnobudowlanyRateInput, ratesSettings.ogolnobudowlany?.rate || 0);
-             ogolnobudowlanyRateInput.addEventListener('input', debounce(handleLaborRateChange, 300));
-             ogolnobudowlanyRateInput.addEventListener('change', (e) => {
-                setNumericInputValue(e.target, parseFloat(e.target.value.replace(',', '.')) || 0.00);
-                if(!isRestoringState && typeof saveHistoryState === 'function') saveHistoryState();
-            });
+    appState.subscribe('estimateTitle', (newTitle) => { document.title = `${newTitle} - ${APP_VERSION}`; if (modalEstimateTitleInput && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalEstimateTitleInput.value = newTitle; });
+    appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+    appState.subscribe('useSameRateForAllSpecialists', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; await updateDynamicSpecialistRatesVisibility(); if (newValue) { const rates = appState.getState('workerRatesSettings'); const ogolnobudowlanyRate = rates.ogolnobudowlany?.rate || 0; const newRatesSettings = JSON.parse(JSON.stringify(rates)); Object.keys(newRatesSettings).forEach(cat => { if (cat !== 'ogolnobudowlany') newRatesSettings[cat].rate = ogolnobudowlanyRate; }); appState.setState('workerRatesSettings', newRatesSettings); } else { appState.notify('workerRatesSettingsChangedByToggle');} });
+    appState.subscribe('workerRatesSettings', async (newRates, oldRates) => { if (isRestoringState) return; if (JSON.stringify(newRates) === JSON.stringify(oldRates) && !appState.getState('useSameRateForAllSpecialists')) return; await updateDynamicSpecialistRatesVisibility(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+    appState.subscribe('workerRatesSettingsChangedByToggle', async () => { if (isRestoringState) return; await updateDynamicSpecialistRatesVisibility(); });
+    appState.subscribe('isHierarchicalMode', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; document.body.classList.toggle('hierarchical-mode-active', newValue); if(addDepartmentBtn) addDepartmentBtn.style.display = newValue ? 'inline-block' : 'none'; if(addSubDepartmentBtn) addSubDepartmentBtn.style.display = newValue ? 'inline-block' : 'none'; if(saveDepartmentTemplateBtn) { saveDepartmentTemplateBtn.style.display = newValue ? 'inline-block' : 'none'; if(!newValue) saveDepartmentTemplateBtn.disabled = true; } if (newValue && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') ensureFirstRowIsDepartmentIfNeeded(false, true); if(typeof renumberRows === 'function') renumberRows(); if(typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if(typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState(); if(typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); });
+    appState.subscribe('estimateDataPotentiallyChanged', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState(); });
+    appState.subscribe('estimateRowsStructureChanged', () => { if (isRestoringState) return; if (typeof renumberRows === 'function') renumberRows(); if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); });
+    appState.subscribe('taskCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
+    appState.subscribe('materialCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof calculateMaterialSummary === 'function' && document.getElementById('materialy')?.classList.contains('active')) await calculateMaterialSummary(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
+    appState.subscribe('materialPricesImported', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
+    appState.subscribe('estimateDataLoaded', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility(); if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors(); });
+    appState.subscribe('defaultTaskRowBackgroundColor', () => {
+        if (!isRestoringState && typeof reapplyAllRowColors === 'function') {
+            reapplyAllRowColors();
         }
-        await updateDynamicSpecialistRatesVisibility();
-        if(useSameRateCheckbox) useSameRateCheckbox.addEventListener('change', handleUseSameRateChange);
-
-        if (branchSelectDropdown) {
-            branchSelectDropdown.value = appState.getState('lastBranchFilter') || "";
-            branchSelectDropdown.addEventListener('change', (e) => {
-                appState.setState('lastBranchFilter', e.target.value);
-            });
-        }
-
-        appState.subscribe('estimateTitle', (newTitle) => { document.title = `${newTitle} - ${APP_VERSION}`; if (modalEstimateTitleInput && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalEstimateTitleInput.value = newTitle; });
-        appState.subscribe('vatRate', async (newVatSetting) => { if (isRestoringState) return; const vatDisplayEl = document.getElementById('modal-vat-rate-display'); if (vatDisplayEl) vatDisplayEl.value = appState.getState('currentVatDisplayValue'); if (modalVatRateSelect && document.getElementById('edit-estimate-details-modal')?.style.display === 'block') modalVatRateSelect.value = newVatSetting; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-        appState.subscribe('useSameRateForAllSpecialists', async (newValue, oldValue) => { if (isRestoringState || newValue === oldValue) return; await updateDynamicSpecialistRatesVisibility(); if (newValue) { const rates = appState.getState('workerRatesSettings'); const ogolnobudowlanyRate = rates.ogolnobudowlany?.rate || 0; const newRatesSettings = JSON.parse(JSON.stringify(rates)); Object.keys(newRatesSettings).forEach(cat => { if (cat !== 'ogolnobudowlany') newRatesSettings[cat].rate = ogolnobudowlanyRate; }); appState.setState('workerRatesSettings', newRatesSettings); } else { appState.notify('workerRatesSettingsChangedByToggle');} });
-        appState.subscribe('workerRatesSettings', async (newRates, oldRates) => { if (isRestoringState) return; if (JSON.stringify(newRates) === JSON.stringify(oldRates) && !appState.getState('useSameRateForAllSpecialists')) return; await updateDynamicSpecialistRatesVisibility(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-        appState.subscribe('workerRatesSettingsChangedByToggle', async () => { if (isRestoringState) return; await updateDynamicSpecialistRatesVisibility(); });
-        appState.subscribe('isHierarchicalMode', async (newValue, oldValue) => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez appState.setState('isHierarchicalMode')
-            // co jest ustawiane przez updateModelAndRender, gdy currentEstimateModel.isHierarchical się zmienia.
-            // Tutaj tylko reagujemy na zmianę flagi w appState (dla UI poza tabelą)
-            if (isRestoringState || newValue === oldValue) return;
-            document.body.classList.toggle('hierarchical-mode-active', newValue);
-            if(addDepartmentBtn) addDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
-            if(addSubDepartmentBtn) addSubDepartmentBtn.style.display = newValue ? 'inline-block' : 'none';
-            if(saveDepartmentTemplateBtn) { saveDepartmentTemplateBtn.style.display = newValue ? 'inline-block' : 'none'; if(!newValue) saveDepartmentTemplateBtn.disabled = true; }
-            if (newValue && typeof ensureFirstRowIsDepartmentIfNeeded === 'function') ensureFirstRowIsDepartmentIfNeeded(false, true); // Ta funkcja już aktualizuje model
-            // Poniższe są już wywoływane przez updateModelAndRender:
-            // if(typeof renumberRows === 'function') renumberRows();
-            // if(typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-            // if(typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
-            // if(typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState();
-            // if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-        });
-        appState.subscribe('estimateDataPotentiallyChanged', async () => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
-            // więc jej działanie (recalculate, save) jest już pokryte.
-            // Można ją usunąć lub zostawić na wypadek, gdyby inne moduły potrzebowały tego sygnału
-            // i nie wywoływały updateModelAndRender bezpośrednio.
-            if (isRestoringState) return;
-            // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-            // if (typeof saveEstimateState === 'function' && !isRestoringState) saveEstimateState();
-        });
-        appState.subscribe('estimateRowsStructureChanged', () => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez updateModelAndRender,
-            // jej działanie jest już pokryte.
-            if (isRestoringState) return;
-            // if (typeof renumberRows === 'function') renumberRows();
-            // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-        });
-        appState.subscribe('taskCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
-        appState.subscribe('materialCatalogChanged', async () => { if (isRestoringState) return; if (typeof refreshCatalogsUITab === 'function' && document.getElementById('katalogi-wlasne')?.classList.contains('active')) await refreshCatalogsUITab(); if (typeof calculateMaterialSummary === 'function' && document.getElementById('materialy')?.classList.contains('active')) await calculateMaterialSummary(); if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); });
-        appState.subscribe('materialPricesImported', async () => { if (isRestoringState) return; if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals(); if (typeof saveHistoryState === 'function' && !isRestoringState) saveHistoryState(); });
-        appState.subscribe('estimateDataLoaded', async () => {
-            // Zmieniono: Ta subskrypcja jest wywoływana przez loadFullState,
-            // a ta funkcja już wywołuje updateModelAndRender, co pokrywa poniższe.
-            if (isRestoringState) return;
-            // if (typeof recalculateAllRowsAndTotals === 'function') await recalculateAllRowsAndTotals();
-            // if (typeof updateDynamicSpecialistRatesVisibility === 'function') await updateDynamicSpecialistRatesVisibility();
-            // if (typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
-        });
-        appState.subscribe('defaultTaskRowBackgroundColor', () => {
-            // Zmieniono: To jest teraz obsługiwane przez renderCostTable, która pobiera kolor z appState
-            if (!isRestoringState && typeof renderCostTable === 'function') {
-                renderCostTable(currentEstimateModel);
-            }
-        });
+    });
 
 
-        populateCommonUnitsDatalist(); setupTabs();
-        await loadEstimateState(); // Zmieniono: Ta funkcja ładuje dane do modelu i wywołuje renderCostTable
-        console.log("Stan kosztorysu wczytany.");
+    populateCommonUnitsDatalist(); setupTabs();
+    await loadEstimateState();
+    console.log("Stan kosztorysu wczytany.");
 
-        if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
-        if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
-        if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglonsole.log("Plik js/analysis.js (Wersja 0.6.1D) zdefiniowany.");
+    if (typeof AnalysisModule !== 'undefined' && AnalysisModule.init) { AnalysisModule.init(); console.log("Moduł Analizy zainicjalizowany."); } else console.warn("AnalysisModule nie został znaleziony.");
+    if (typeof StyleConfiguratorModule !== 'undefined' && StyleConfiguratorModule.init) { try { StyleConfiguratorModule.init(); console.log("Moduł Konfiguratora Stylu zainicjalizowany."); } catch (styleError) { console.warn("Błąd podczas inicjalizacji StyleConfiguratorModule z initApp:", styleError); } } else console.warn("StyleConfiguratorModule nie jest dostępny.");
+    if (toggleStyleConfiguratorBtn && konfiguratorStyluContent) { toggleStyleConfiguratorBtn.addEventListener('click', () => { const isVisible = konfiguratorStyluContent.style.display === 'block'; konfiguratorStyluContent.style.display = isVisible ? 'none' : 'block'; toggleStyleConfiguratorBtn.textContent = isVisible ? 'Pokaż Konfigurator Wyglądu' : 'Ukryj Konfigurator Wyglądu'; }); }
+    if(undoBtn) undoBtn.addEventListener('click', undo); if(redoBtn) redoBtn.addEventListener('click', redo);
+    if (scrollToTopBtn) { scrollToTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }); }
+    document.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey) { if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); if(undoBtn && !undoBtn.disabled) undo(); } else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); if(redoBtn && !redoBtn.disabled) redo(); } } });
+    if (customContextMenu) { document.addEventListener('contextmenu', showCustomContextMenu); customContextMenu.addEventListener('click', handleContextMenuAction); }
+    document.addEventListener('click', (event) => { if (customContextMenu && customContextMenu.style.display === 'block' && !customContextMenu.contains(event.target)) hideCustomContextMenu(); if (activeDropdown && activeSearchInput && !activeSearchInput.contains(event.target) && !activeDropdown.contains(event.target) && !event.target.closest('.suggestions-dropdown')) if(typeof hideAllDropdowns === 'function') hideAllDropdowns(); const isAddButton = event.target.closest('#add-row-btn') || event.target.closest('#add-department-btn') || event.target.closest('#add-subdepartment-btn'); const isIndicator = event.target.closest(`#${INDICATOR_ROW_ID}`); if (!isAddButton && !isIndicator) removeInsertIndicator(); if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex' && !colorPaletteDiv.contains(event.target) && !event.target.classList.contains('color-picker-icon')) { colorPaletteDiv.remove();} });
+    window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (activeDropdown && typeof hideAllDropdowns === 'function') hideAllDropdowns(); if (customContextMenu && customContextMenu.style.display === 'block') hideCustomContextMenu(); removeInsertIndicator(); if(notesModal && notesModal.style.display === 'block' && typeof closeNotesModal === 'function') closeNotesModal(); if(customTaskModal && customTaskModal.style.display === 'block' && typeof closeCustomTaskModal === 'function') closeCustomTaskModal(); if(materialSelectModal && materialSelectModal.style.display === 'block' && typeof closeMaterialSelectModal === 'function') closeMaterialSelectModal(); if(printSelectionModal && printSelectionModal.style.display === 'block' && typeof closePrintSelectionModal === 'function') closePrintSelectionModal(); if(estimateDetailsModal && estimateDetailsModal.style.display === 'block' && typeof closeEstimateDetailsModal === 'function') closeEstimateDetailsModal(); if(templatesModal && templatesModal.style.display === 'block' && typeof closeTemplatesModal === 'function') closeTemplatesModal(); if(confirmNotificationModal && confirmNotificationModal.style.display === 'block') { if (currentCancelCallback) currentCancelCallback(); closeConfirmNotificationModal(); } if(colorPaletteDiv && colorPaletteDiv.style.display === 'flex') { colorPaletteDiv.remove(); } } });
+
+    await initDBEstimateVersions();
+    initAutoSaveSettingsControls();
+    initUserActivityListeners(); // Rozpocznij śledzenie aktywności
+    startAutoSaveTimer(); // Uruchom timer autozapisu (uwzględni stan bezczynności)
+
+    if (document.querySelector('.tab.active[data-tab="ustawienia"]')) {
+        if (typeof displayEstimateVersions === 'function') await displayEstimateVersions();
+    }
+
+    updateUndoRedoButtons();
+    if(typeof reapplyAllRowColors === 'function') reapplyAllRowColors();
+    console.log(`%c${APP_VERSION} zainicjalizowany częściowo (core). Dalsza inicjalizacja w modułach.`, "color: green;");
+};
+
 // ==========================================================================
 // SEKCJA 11: GŁÓWNY PUNKT WEJŚCIA APLIKACJI (DOMContentLoaded)
 // ==========================================================================
@@ -1485,14 +1464,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log(`DOM Content Loaded. Start skryptu ${APP_VERSION}...`);
     let localCatalogImporterInstance;
     try {
-        // ... (kod inicjalizujący) ...
-        await dbService.openDB();
-        // ...
-        await initApp(); // <-- Tutaj wywoływana jest główna funkcja inicjalizująca
-        // ...
-        if (typeof initEstimateLogic === 'function') await initEstimateLogic(); // <-- Inicjalizuje logikę kosztorysu
-        // ...
+        if (typeof dbService === 'undefined' || typeof dbService.openDB !== 'function') throw new Error("Krytyczny błąd: dbService nie jest zdefiniowane.");
+        await dbService.openDB(); console.log("Połączenie z IndexedDB (główna baza) nawiązane.");
+        if (typeof CatalogImporter === 'undefined') throw new Error("Krytyczny błąd: Klasa CatalogImporter nie jest zdefiniowana.");
+        localCatalogImporterInstance = new CatalogImporter(dbService); console.log("Instancja CatalogImporter utworzona.");
+        await localCatalogImporterInstance.checkAndImportInitialData(); console.log("Sprawdzanie i import danych katalogowych zakończone.");
+        if (typeof appState !== 'undefined' && typeof appState.init === 'function') appState.init();
+        else throw new Error("Krytyczny błąd: Zarządca stanu appState nie jest zdefiniowany.");
+        await initApp(); 
+        if (typeof initEstimateLogic === 'function') await initEstimateLogic(); else console.warn("Funkcja initEstimateLogic nie znaleziona.");
+        if (typeof initModalsAndIO === 'function') await initModalsAndIO(); else console.warn("Funkcja initModalsAndIO nie znaleziona.");
+        if (typeof initCatalogsUI === 'function') await initCatalogsUI(); else console.warn("Funkcja initCatalogsUI nie znaleziona.");
+        console.log(`%cPełna inicjalizacja ${APP_VERSION} zakończona.`, "color: green; font-weight: bold;");
+        saveToLocalStorage(STORAGE_KEYS.APP_VERSION_LS, APP_VERSION);
     } catch (error) {
-        // ... (obsługa błędów) ...
+        console.error("KRYTYCZNY BŁĄD INICJALIZACJI APLIKACJI:", error);
+        let errorMessageToUser = `Wystąpił krytyczny błąd: ${error.message}. Aplikacja może nie działać.`;
+        if (error.message) { if (error.message.toLowerCase().includes("json")) errorMessageToUser += "\n\nMożliwy problem z formatem plików JSON. Sprawdź konsolę (F12)."; else if (error.message.toLowerCase().includes("dbservice") || error.message.toLowerCase().includes("catalogimporter") || error.message.toLowerCase().includes("indexeddb")) errorMessageToUser += "\n\nMożliwy problem z inicjalizacją bazy danych lub katalogów. Sprawdź konsolę (F12) i kolejność skryptów."; else if (error.message.toLowerCase().includes("dom") || error.message.toLowerCase().includes("getelementbyid") || error.message.toLowerCase().includes("not found in dom")) errorMessageToUser += "\n\nMożliwy problem ze znalezieniem elementu HTML. Sprawdź index.html i konsolę (F12)."; else if (error.message.toLowerCase().includes("is not defined")) errorMessageToUser += `\n\nProblem z dostępnością funkcji lub zmiennej (${error.message.split(' ')[0]}). Sprawdź konsolę (F12) i kolejność skryptów.`; } errorMessageToUser += "\n\nSprawdź konsolę (F12) po szczegóły.";
+        if (typeof showNotification === 'function' && notificationsContainer) { showNotification(errorMessageToUser.replace(/\n/g, "<br>"), 'error', 0); } else { alert(errorMessageToUser.replace(/\n\n/g, '\n')); }
+        if (document.body) { document.body.innerHTML = `<div style="padding: 20px; text-align: left; font-family: Arial, sans-serif; background-color: #ffebee; border: 2px solid #c62828; margin: 20px auto; max-width: 800px; border-radius: 8px;"><h1 style="color: #c62828;">Błąd Krytyczny Aplikacji EazyKoszt</h1><p>${errorMessageToUser.replace(/\n/g, "<br>")}</p></div>`;}
     }
 });
+
+console.log("Plik EazyKoszt 0.4.2-script-core.js załadowany.");

@@ -1,0 +1,152 @@
+/* Plik: login-style.css */
+/* Opis: Dedykowane style dla strony logowania i rejestracji (login.html). */
+/* Wersja aplikacji: EazyKoszt 0.25.06.05.1 */
+
+/* ==========================================================================
+   1. SEKCJA: ZMIENNE GLOBALNE CSS I PODSTAWOWY RESET
+   ========================================================================== */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c; /* Alias dla koloru błędu */
+    --light-gray: #f5f7fa;
+    --medium-gray: #e1e5eb;
+    --dark-gray: #7f8c8d;
+    --text-color: #333;
+    --border-radius: 4px;
+    --success-color: #28a745;
+    --error-color: var(--accent-color);
+}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light-gray);
+    color: var(--text-color);
+    line-height: 1.5;
+    font-size: 16px;
+}
+
+/* ==========================================================================
+   2. SEKCJA: STYLE UWIERZYTELNIANIA
+   ========================================================================== */
+#auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    padding: 20px;
+}
+
+.auth-form-wrapper {
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 25px;
+}
+
+.auth-form h2 {
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 25px;
+    color: var(--primary-color);
+    border: none;
+}
+
+.auth-form .form-group {
+    text-align: left;
+    margin-bottom: 18px;
+}
+
+.auth-form .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+.auth-form input[type="email"],
+.auth-form input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--medium-gray);
+    border-radius: var(--border-radius);
+    font-size: 1em;
+    transition: all .2s ease;
+}
+
+.auth-form input[type="email"]:focus,
+.auth-form input[type="password"]:focus {
+    border-color: var(--secondary-color);
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.auth-button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+    font-weight: 500;
+    margin-top: 10px;
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: var(--secondary-color);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color .2s ease;
+}
+
+.auth-button:hover {
+    background-color: #2980b9;
+}
+
+.auth-toggle {
+    margin-top: 25px;
+    font-size: 0.9em;
+    color: var(--dark-gray);
+}
+
+.auth-toggle a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-toggle a:hover {
+    text-decoration: underline;
+}
+
+.auth-error {
+    color: var(--error-color);
+    background-color: rgba(231, 76, 60, 0.1);
+    border: 1px solid var(--error-color);
+    padding: 10px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    text-align: left;
+    display: none; /* Domyślnie ukryty */
+}
